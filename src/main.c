@@ -65,21 +65,21 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Token temp;
-    Lexer lexer;
-    lexer_init(&lexer, source);
+    // Token temp;
+    // Lexer lexer;
+    // lexer_init(&lexer, source);
 
-    do
-    {
-        temp = lexer_next_token(&lexer);
+    // do
+    // {
+    //     temp = lexer_next_token(&lexer);
 
-        if (temp.type == EOS) break;
+    //     if (temp.type == EOS) break;
         
-        char *lexeme = token_as_txt(&temp, source);
-        printf("Token {type: %i, txt: \"%s\"}\n", temp.type, lexeme);
+    //     char *lexeme = token_as_txt(&temp, source);
+    //     printf("Token {type: %i, txt: \"%s\"}\n", temp.type, lexeme);
 
-        free(lexeme);
-    } while (1);
+    //     free(lexeme);
+    // } while (1);
 
     free(source);
 
