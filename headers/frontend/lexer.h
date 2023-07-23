@@ -3,10 +3,11 @@
 
 #include "frontend/token.h"
 
-#define IS_WSP(c) (c == ' ') || (c == '\t') || (c == '\r') || (c == '\n')
+#define IS_WSP(c) c == ' ' || c == '\t' || c == '\r' || c == '\n'
 #define MATCH_CHAR(c, t) c == t
 #define IS_ALPHA(c) (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_'
 #define IS_NUMERIC(c) (c >= '0' && c <= '9')
+#define IS_OP_CHAR(c) c == '=' || c == '!' || c == '<' || c == '>' || c == '+' || c == '-' || c == '*' || c == '/' || c == '&' || c == '|'
 
 typedef struct st_lexer
 {
@@ -33,6 +34,8 @@ Token lexer_lex_boolean(Lexer *lexer);
 Token lexer_lex_number(Lexer *lexer);
 
 Token lexer_lex_string(Lexer *lexer);
+
+Token lexer_lex_operator(Lexer *lexer);
 
 Token lexer_next_token(Lexer *lexer);
 

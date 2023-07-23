@@ -225,6 +225,28 @@ Token lexer_lex_string(Lexer *lexer)
     return (Token){.type = STRBODY, .begin = begin, .span = span, .line = lexer->line};
 }
 
+Token lexer_lex_operator(Lexer *lexer)
+{
+    char c;
+    size_t begin = lexer->pos;
+    size_t span = 0;
+    char *src_cursor = lexer->src + begin;
+
+    while (span <= lexer->limit)
+    {
+        c = *src_cursor;
+
+        if (!(IS_OP_CHAR(c))) break;
+
+        src_cursor++;
+        span++;
+    }
+
+    lexer->pos += span;
+
+    return (Token){.type = OPERATOR, .begin = begin, .span = span, .line = lexer->line};
+}
+
 Token lexer_next_token(Lexer *lexer)
 {
     /// At end of source code, terminate the tokens with EOS (end of source)!
@@ -244,7 +266,8 @@ Token lexer_next_token(Lexer *lexer)
     else if (MATCH_CHAR(c, 'o')) return lexer_lex_keyword(lexer, "otherwise");
     else if (MATCH_CHAR(c, 'w')) return lexer_lex_keyword(lexer, "while");
     else if (MATCH_CHAR(c, 'e')) return lexer_lex_keyword(lexer, "end");
-    else if (MATCH_CHAR(c, '+') || MATCH_CHAR(c, '-') || MATCH_CHAR(c, '*') || MATCH_CHAR(c, '/') || MATCH_CHAR(c, ':')) return lexer_lex_single(lexer, OPERATOR);
+    else if (MATCH_CHAR(c, 'r')) return lexer_lex_keyword(lexer, "return");
+    else if (IS_OP_CHAR(c)) return lexer_lex_single(lexer, OPERATOR);
     else if (IS_ALPHA(c)) return lexer_lex_identifier(lexer);
     else if (MATCH_CHAR(c, '$')) return lexer_lex_boolean(lexer);
     else if (IS_NUMERIC(c)) return lexer_lex_number(lexer);
