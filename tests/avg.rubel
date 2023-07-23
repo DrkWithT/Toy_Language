@@ -1,0 +1,10 @@
+# average of 2 nums
+
+use io
+
+proc avgTwo(a, b)
+    return (a + b) / 2
+end
+
+print("avg of 4 and 10 is ")
+print(avgTwo(4, 10))

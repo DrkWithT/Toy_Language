@@ -1,0 +1,9 @@
+# ignore vscode configs
+.vscode/
+
+# ignore binary dirs:
+build/
+bin/
+
+# ignore envfiles if any:
+.env
