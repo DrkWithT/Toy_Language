@@ -2,7 +2,7 @@
 ## DerkWithT at `replit.com`
 
 ### Summary
-This might be a toy language interpreter using the tree walk approach on a generated AST.
+This will be a toy language interpreter using the tree walk approach on a generated AST. Also, this is a work in progress project for fun. Not for production use!
 
 ### Features of Rubel
  1. Paradigm(s):
@@ -20,7 +20,7 @@ This might be a toy language interpreter using the tree walk approach on a gener
 ### Keywords of Rubel
  - `use`: Includes a module into a script. Specifically, the names of other procedures and constants become visible.
  - `let`: Declares a mutable variable.
- - `const`: Declares an immutable variable. Lists should be fixed size with this specifier as well.
+ - `const`: Declares a _deeply_ immutable variable. Lists will not be mutable either as `const`!
  - `proc`: Declares a procedure.
  - `if`: Executes a block of statements if its conditional is true.
  - `otherwise`: Executes a block of statements if the last `if` failed.
@@ -29,4 +29,10 @@ This might be a toy language interpreter using the tree walk approach on a gener
  - return: Returns a value from an expression in a procedure.
 
 ### Examples of Rubel
- - See `tests` to know Rubel's syntax.
+ - See `tests` to get a sense of Rubel's syntax. I will add more tests later as I continue Rubel.
+
+### TODO:
+ 1. Make recursive descent parser.
+ 2. Edit AST structs if needed.
+ 3. Make interpreter (context and tree walker).
+ 4. Test sample scripts!
