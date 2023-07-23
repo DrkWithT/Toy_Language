@@ -2,7 +2,7 @@
 ## DerkWithT at `replit.com`
 
 ### Summary
-This will be a toy language interpreter using the tree walk approach on a generated AST. Also, this is a work in progress project for fun. Not for production use!
+This will be a toy language interpreter using the tree walk approach on a generated AST. Also, this is a work in progress project for fun only. Feel free to fork this.
 
 ### Features of Rubel
  1. Paradigm(s):
@@ -34,5 +34,5 @@ This will be a toy language interpreter using the tree walk approach on a genera
 ### TODO:
  1. Make recursive descent parser.
  2. Edit AST structs if needed.
- 3. Make interpreter (context and tree walker).
+ 3. Make interpreter (context, activation frames, and tree walk evaluator).
  4. Test sample scripts!

@@ -62,6 +62,7 @@ typedef struct st_statement
 
         struct
         {
+            int is_const;
             char *var_name;
         } var_decl;
 
@@ -142,7 +143,7 @@ typedef struct st_expression
 
         struct
         {
-            int flag_lvalue;
+            int is_lvalue;
             char *var_name;
         } var_name;
 
