@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 
     if (strcmp(argv[1], "--version") == 0)
     {
-        puts("Rubel 0.0.1 by DerkWithT");
+        puts("Rubel v0.0.1\nBy DrkWithT");
         return 0;
     }
 

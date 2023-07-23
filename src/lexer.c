@@ -129,7 +129,7 @@ Token lexer_lex_boolean(Lexer *lexer)
 
     size_t begin = lexer->pos;
     char c = lexer->src[begin];
-    size_t span;
+    size_t span = 0;
 
     // Handle case of cut-off boolean at EOF.
     if (MATCH_CHAR(c, '\0'))
