@@ -9,21 +9,26 @@ typedef enum
     FUNC_DECL,
     WHILE_STMT,
     IF_STMT,
-    ELSE_STMT,
+    OTHERWISE_STMT,
     BREAK_STMT,
-    RET_STMT,
+    RETURN_STMT,
     EXPR_STMT
 } StatementType;
 
 typedef enum
 {
     OP_EQ,
+    OP_NEQ,
     OP_GT,
+    OP_GTE,
     OP_LT,
+    OP_LTE,
     OP_ADD,
     OP_SUB,
     OP_MUL,
     OP_DIV,
+    OP_AND,
+    OP_OR,
     OP_INDEX
 } OpType;
 
@@ -52,6 +57,7 @@ typedef struct st_statement
         {
             char *func_name;
             struct st_expression **args;
+            unsigned int argc;
         } func_call;
 
         struct
@@ -64,26 +70,27 @@ typedef struct st_statement
             char *func_name;
             struct st_expression *func_args;
             struct st_statement **func_body;
+            unsigned int count;
         } func_decl;
 
         struct
         {
             struct st_expression *condition;
             struct st_statement **stmt_block;
-            int count;
+            unsigned int count;
         } while_stmt;
 
         struct
         {
             struct st_expression *condition;
             struct st_statement **stmt_block;
-            int count;
+            unsigned int count;
         } if_stmt;
         
         struct
         {
             struct st_statement **stmt_block;
-            int count;
+            unsigned int count;
         } otherwise_stmt;
 
         struct
@@ -130,13 +137,14 @@ typedef struct st_expression
 
         struct
         {
-            void *items;
+            void *list_obj;
         } list_literal;
 
         struct
         {
+            int flag_lvalue;
             char *var_name;
-        } var_usage;
+        } var_name;
 
         struct
         {
@@ -150,6 +158,7 @@ typedef struct st_expression
 typedef struct st_script
 {
     char *name;
+    unsigned int count;
     Statement **stmts;
 } Script;
 
