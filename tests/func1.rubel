@@ -1,4 +1,4 @@
-# function example
+# sample linear search
 
 use io
 
@@ -10,7 +10,7 @@ func findNum(numbers, num)
     let count = lengthof(numbers)
 
     while (i < count)
-        if (numbers : i == num)
+        if (numbers[i] == num)
             return i
         end
 
