@@ -1,5 +1,12 @@
 #include "frontend/lexer.h"
 
+/**
+ * @file lexer.c
+ * @author Derek Tan 
+ * @brief Implements lexer.
+ * @date 2023-07-22
+ */
+
 void lexer_init(Lexer *lexer, char *source)
 {
     lexer->src = source;
@@ -267,7 +274,7 @@ Token lexer_next_token(Lexer *lexer)
     else if (MATCH_CHAR(c, 'w')) return lexer_lex_keyword(lexer, "while");
     else if (MATCH_CHAR(c, 'e')) return lexer_lex_keyword(lexer, "end");
     else if (MATCH_CHAR(c, 'r')) return lexer_lex_keyword(lexer, "return");
-    else if (IS_OP_CHAR(c)) return lexer_lex_single(lexer, OPERATOR);
+    else if (IS_OP_CHAR(c)) return lexer_lex_operator(lexer);
     else if (IS_ALPHA(c)) return lexer_lex_identifier(lexer);
     else if (MATCH_CHAR(c, '$')) return lexer_lex_boolean(lexer);
     else if (IS_NUMERIC(c)) return lexer_lex_number(lexer);

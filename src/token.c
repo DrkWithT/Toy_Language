@@ -1,5 +1,12 @@
 #include "frontend/token.h"
 
+/**
+ * @file token.c
+ * @author Derek Tan
+ * @brief Implements token functions.
+ * @date 2023-07-22 
+ */
+
 void token_init(Token *token, TokenType type, size_t begin, size_t span, size_t line)
 {
     token->type = type;

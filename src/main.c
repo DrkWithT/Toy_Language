@@ -1,6 +1,13 @@
 #include <stdio.h>
 #include "frontend/lexer.h"
 
+/**
+ * @file main.c 
+ * @author Derek Tan
+ * @brief Driver code for the parser with interpreter.
+ * @date 2023-07-22
+ */
+
 char *read_file(const char *file_path)
 {
     // Check if file can be read.
