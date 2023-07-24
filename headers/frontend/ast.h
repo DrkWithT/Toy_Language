@@ -4,22 +4,24 @@
 /**
  * @file ast.h
  * @author Derek Tan
- * @brief Parts are enums, Expression, Statement, and Script.
+ * @brief Parts are enums, Expression, Statement, and Script. 1 is the true success return value.
  */
+
+#include <stdlib.h>
 
 typedef enum
 {
     MODULE_DEF,
     MODULE_USE,
-    FUNC_CALL,
+    EXPR_STMT,
     VAR_DECL,
+    BLOCK_STMT,
     FUNC_DECL,
     WHILE_STMT,
     IF_STMT,
     OTHERWISE_STMT,
     BREAK_STMT,
-    RETURN_STMT,
-    EXPR_STMT
+    RETURN_STMT
 } StatementType;
 
 typedef enum
@@ -47,6 +49,7 @@ typedef enum
     STR_LITERAL,
     LIST_LITERAL,
     VAR_USAGE,
+    FUNC_CALL,
     UNARY_OP,
     BINARY_OP
 } ExpressionType;
@@ -73,7 +76,7 @@ typedef struct st_expression
 
         struct
         {
-            char *content;
+            void *str_obj;
         } str_literal;
 
         struct
@@ -85,7 +88,15 @@ typedef struct st_expression
         {
             int is_lvalue;
             char *var_name;
-        } var_name;
+        } variable;
+
+        struct
+        {
+            char *func_name;
+            unsigned int cap;
+            unsigned int argc;
+            struct st_expression **args;
+        } fn_call;
 
         struct
         {
@@ -104,19 +115,41 @@ typedef struct st_expression
 
 Expression *create_bool(int flag);
 
-Expression *create_int();
+Expression *create_int(int val);
 
-Expression *create_real();
+Expression *create_real(float val);
 
-Expression *create_str();
+Expression *create_str(void *str_obj);
 
 Expression *create_list(void *list_val);
 
 Expression *create_var(int is_lvalue, char *name);
 
+Expression *create_call(char *fn_name);
+
+void add_arg_call(Expression *call_expr, Expression *arg_expr);
+
+/**
+ * @brief Downsizes the memory taken by this Expression. Arg vector capacity is shrunk to its count.
+ * @param call_expr
+ */
+void pack_mem_call(Expression *call_expr);
+
+/**
+ * @brief Clears the internal Expression vector. Names are unbound instead, as they are managed by the interpreter context.
+ * @param call_expr 
+ */
+int clear_mem_call(Expression *call_expr);
+
 Expression *create_unary(OpType op, Expression *expr);
 
 Expression *create_binary(OpType op, Expression *left, Expression *right);
+
+/**
+ * @brief Deallocates wrapper Expressions, but names are unbound instead since they are managed by the interpreter context.
+ * @param expr 
+ */
+void destroy_expr(Expression *expr);
 
 typedef struct st_statement
 {
@@ -126,6 +159,7 @@ typedef struct st_statement
         struct
         {
             struct st_statement **stmts;
+            unsigned int capacity;
             unsigned int count;
         } block;
 
@@ -141,13 +175,6 @@ typedef struct st_statement
 
         struct
         {
-            char *func_name;
-            struct st_expression **args;
-            unsigned int argc;
-        } func_call;
-
-        struct
-        {
             int is_const;
             char *var_name;
             struct st_expression *rvalue;
@@ -156,25 +183,27 @@ typedef struct st_statement
         struct
         {
             char *func_name;
-            struct st_expression *func_args;
-            struct block *stmts;
+            unsigned int cap;
+            unsigned int argc;
+            struct st_expression **func_args;
+            struct st_statement *stmts;
         } func_decl;
 
         struct
         {
             struct st_expression *condition;
-            struct block *stmts;
+            struct st_statement *stmts;
         } while_stmt;
 
         struct
         {
             struct st_expression *condition;
-            struct block *stmts;
+            struct st_statement *stmts;
         } if_stmt;
         
         struct
         {
-            struct block *stmts;
+            struct st_statement *stmts;
         } otherwise_stmt;
 
         struct
@@ -196,17 +225,29 @@ typedef struct st_statement
 
 Statement *create_block_stmt();
 
-void grow_block_stmt(Statement *stmt);
+/**
+ * @brief Resizes the internal statement ptr array like a vector when count reaches capacity. Capacity is then doubled.
+ * @param stmt
+ */
+int grow_block_stmt(Statement *block_stmt);
+
+int pack_block_stmt(Statement *block_stmt);
+
+int clear_block_stmt(Statement *block_stmt);
 
 Statement *create_module_def(char *name);
 
 Statement *create_module_usage(char *name);
 
-Statement *create_func_call(char *fn_name, Expression *args, unsigned int argc);
-
-Statement *create_var_decl(char *var_name, Expression *rvalue);
+Statement *create_var_decl(int is_const, char *var_name, Expression *rvalue);
 
 Statement *create_func_stmt(char *fn_name, Statement *block);
+
+int put_arg_func_stmt(Statement *fn_decl, Expression *arg_expr);
+
+int pack_args_func_stmt(Statement *fn_decl);
+
+int clear_func_stmt(Statement *fn_decl);
 
 Statement *create_while_stmt(Expression *conditional, Statement *block);
 
@@ -220,17 +261,30 @@ Statement *create_return_stmt(Expression *result);
 
 Statement *create_expr_stmt(Expression *expr);
 
-void stmt_destroy(Statement *stmt);
+/**
+ * @brief Unbinds any dynamic data pointer within a Statement structure since the interpreter context stores name-data mappings.
+ * 
+ * @param stmt 
+ */
+void destroy_stmt(Statement *stmt);
 
 typedef struct st_script
 {
     char *name;
+    unsigned int capacity;
     unsigned int count;
     Statement **stmts;
 } Script;
 
-void init_script(Script *script, size_t old_count);
+void init_script(Script *script, unsigned int old_count);
 
+void grow_script(Script *script, Statement *stmt_obj);
+
+/**
+ * @brief Unbinds any dynamic memory ptrs since names to entity mappings are managed by the interpreter context. Wrappers get deallocated on the outer level.
+ * @note block statements recursively have their entity ptrs unbound before deallocation.
+ * @param script
+ */
 void dispose_script(Script *script);
 
 #endif
