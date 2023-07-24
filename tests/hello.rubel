@@ -1,0 +1,5 @@
+# hello world script
+
+use io
+
+print("hello world!")
