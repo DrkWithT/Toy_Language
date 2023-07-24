@@ -32,6 +32,6 @@ This will be a toy language interpreter using the tree walk approach on a genera
  - See `tests` to get a sense of Rubel's syntax. I will add more tests later as I continue Rubel.
 
 ### TODO:
- 1. Make AST funcs.
- 2. Make interpreter (context, activation frames, and tree walk evaluator).
+ 1. Make parser.
+ 2. Make interpreter (values, scope contexts, and tree walk evaluator).
  3. Test sample scripts!
