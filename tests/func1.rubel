@@ -1,11 +1,11 @@
-# linear search fn
+# linear search sample
 
 use io
 
 const numlist = [7, 1, 2, 5, 4, 6, 3]
 const target = 4
 
-func findNum(numbers, num)
+proc findNum(numbers, num)
     let i = 0
     let count = lengthof(numbers)
 
