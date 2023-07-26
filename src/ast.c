@@ -16,7 +16,7 @@ Expression *create_bool(int flag)
     if (expr != NULL)
     {
         expr->type = BOOL_LITERAL;
-        expr->syntax.bool_literal.flag = (flag != 0);
+        expr->syntax.bool_literal.flag = flag;
     }
 
     return expr;
@@ -260,7 +260,7 @@ Statement *create_block_stmt()
         stmt->type = BLOCK_STMT;
         stmt->syntax.block.capacity = 4;
         stmt->syntax.block.count = 0;
-        stmt->syntax.block.stmts = malloc(sizeof(Statement) * 4);
+        stmt->syntax.block.stmts = malloc(sizeof(Statement *) * 4);
 
         if (!stmt->syntax.block.stmts) stmt->syntax.block.capacity = 0; // NOTE: do not resize invalid vector memory.
     }
@@ -268,10 +268,21 @@ Statement *create_block_stmt()
     return stmt;
 }
 
-int grow_block_stmt(Statement *block_stmt)
+int grow_block_stmt(Statement *block_stmt, Statement *new_stmt)
 {
+    if (!new_stmt)
+        return 0;
+
+    size_t curr_count = block_stmt->syntax.block.count;
     size_t old_capacity = block_stmt->syntax.block.capacity;
     size_t new_capacity = old_capacity << 1;
+
+    if (curr_count < old_capacity)
+    {
+        block_stmt->syntax.block.stmts[curr_count - 1] = new_stmt;
+        block_stmt->syntax.block.count++;
+        return 1;
+    }
 
     Statement **raw_block = realloc(block_stmt->syntax.block.stmts, sizeof(Statement *) * new_capacity);
 
@@ -281,6 +292,9 @@ int grow_block_stmt(Statement *block_stmt)
             raw_block[i] = NULL;
         
         block_stmt->syntax.block.stmts = raw_block;
+        block_stmt->syntax.block.stmts[old_capacity] = new_stmt;
+        
+        block_stmt->syntax.block.count++;
         return 1;
     }
 
@@ -466,7 +480,7 @@ Statement *create_while_stmt(Expression *conditional, Statement *block)
     return stmt;
 }
 
-Statement *create_if_stmt(Expression *conditional, Statement *block)
+Statement *create_if_stmt(Expression *conditional, Statement *first, Statement *other)
 {
     Statement *stmt = malloc(sizeof(Statement));
 
@@ -474,7 +488,8 @@ Statement *create_if_stmt(Expression *conditional, Statement *block)
     {
         stmt->type = IF_STMT;
         stmt->syntax.if_stmt.condition = conditional;
-        stmt->syntax.if_stmt.stmts = block;
+        stmt->syntax.if_stmt.first = first;
+        stmt->syntax.if_stmt.other = other;
     }
 
     return stmt;
@@ -552,7 +567,8 @@ void destroy_stmt(Statement *stmt)
     else if (stmt->type == IF_STMT)
     {
         destroy_expr(stmt->syntax.if_stmt.condition);
-        clear_block_stmt(stmt->syntax.if_stmt.stmts);
+        clear_block_stmt(stmt->syntax.if_stmt.first);
+        clear_block_stmt(stmt->syntax.if_stmt.other);
     }
     else if (stmt->type == OTHERWISE_STMT)
     {
@@ -561,5 +577,67 @@ void destroy_stmt(Statement *stmt)
     else if (stmt->type == RETURN_STMT)
     {
         destroy_expr(stmt->syntax.return_stmt.result);
+    }
+}
+
+/// SECTION: Script
+
+void init_script(Script *script, const char *name, unsigned int old_count)
+{
+    script->name = name;
+    script->count = old_count;
+    script->stmts = malloc(sizeof(Statement*) * old_count);
+
+    if (!script->stmts) script->capacity = 0; // NOTE: do not resize invalid vector memory.
+}
+
+void grow_script(Script *script, Statement *stmt_obj)
+{
+    size_t curr_count = script->count;
+    size_t old_capacity = script->capacity;
+    size_t new_capacity = old_capacity << 1;
+
+    if (curr_count < old_capacity)
+    {
+        script->stmts[curr_count - 1] = stmt_obj;
+        script->count++;
+        return 1;
+    }
+
+    Statement **raw_block = realloc(script->stmts, sizeof(Statement *) * new_capacity);
+
+    if (raw_block != NULL)
+    {
+        for (size_t i = old_capacity; i < new_capacity; i++)
+            raw_block[i] = NULL;
+        
+        script->stmts = raw_block;
+        script->stmts[old_capacity] = stmt_obj;
+        
+        script->capacity++;
+    }
+}
+
+void dispose_script(Script *script)
+{
+    if (!script)
+        return;
+    
+    size_t stmt_count = script->count;
+    Statement *target = NULL;
+    Statement **cursor = script->stmts;
+
+    for (size_t i = 0; i < stmt_count; i++)
+    {
+        target = *cursor;
+
+        if (target != NULL)
+        {
+            destroy_stmt(target);
+            free(target);
+            target = NULL;
+        }
+
+        cursor++;
     }
 }
