@@ -9,7 +9,7 @@
 
 #include <stdlib.h>
 
-typedef enum
+typedef enum en_stmt_type
 {
     MODULE_DEF,
     MODULE_USE,
@@ -24,8 +24,10 @@ typedef enum
     RETURN_STMT
 } StatementType;
 
-typedef enum
+typedef enum en_optype
 {
+    OP_AND,
+    OP_OR,
     OP_EQ,
     OP_NEQ,
     OP_GT,
@@ -36,12 +38,11 @@ typedef enum
     OP_SUB,
     OP_MUL,
     OP_DIV,
-    OP_AND,
-    OP_OR,
+    OP_NEG,
     OP_INDEX
 } OpType;
 
-typedef enum
+typedef enum en_expr_type
 {
     BOOL_LITERAL,
     INT_LITERAL,
@@ -198,7 +199,8 @@ typedef struct st_statement
         struct
         {
             struct st_expression *condition;
-            struct st_statement *stmts;
+            struct st_statement *first;
+            struct st_statement *other;
         } if_stmt;
         
         struct
@@ -229,9 +231,9 @@ Statement *create_block_stmt();
  * @brief Resizes the internal statement ptr array like a vector when count reaches capacity. Capacity is then doubled.
  * @param stmt
  */
-int grow_block_stmt(Statement *block_stmt);
+int grow_block_stmt(Statement *block_stmt, Statement *new_stmt);
 
-int pack_block_stmt(Statement *block_stmt);
+int pack_block_stmt(Statement *block_stmt); // TODO: later use!
 
 int clear_block_stmt(Statement *block_stmt);
 
@@ -245,13 +247,13 @@ Statement *create_func_stmt(char *fn_name, Statement *block);
 
 int put_arg_func_stmt(Statement *fn_decl, Expression *arg_expr);
 
-int pack_args_func_stmt(Statement *fn_decl);
+int pack_args_func_stmt(Statement *fn_decl); // TODO: later use!
 
 int clear_func_stmt(Statement *fn_decl);
 
 Statement *create_while_stmt(Expression *conditional, Statement *block);
 
-Statement *create_if_stmt(Expression *conditional, Statement *block);
+Statement *create_if_stmt(Expression *conditional, Statement *first, Statement *other);
 
 Statement *create_otherwise_stmt(Statement *block);
 
@@ -270,13 +272,13 @@ void destroy_stmt(Statement *stmt);
 
 typedef struct st_script
 {
-    char *name;
+    const char *name;
     unsigned int capacity;
     unsigned int count;
     Statement **stmts;
 } Script;
 
-void init_script(Script *script, unsigned int old_count);
+void init_script(Script *script, const char *name, unsigned int old_count);
 
 void grow_script(Script *script, Statement *stmt_obj);
 
