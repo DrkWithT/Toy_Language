@@ -4,6 +4,7 @@
 #include "frontend/lexer.h"
 #include "frontend/ast.h"
 #include "frontend/fileload.h"
+#include "backend/values/vartypes.h"
 
 typedef struct
 {

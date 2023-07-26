@@ -5,7 +5,6 @@
  * @date 2023-07-23
  */
 
-#include "backend/values/vartypes.h"
 #include "frontend/parser.h"
 
 void parser_init(Parser *parser, char *src)
@@ -98,10 +97,10 @@ Expression *parse_primitive(Parser *parser)
         expr = create_int(atoi(lexeme));
         break;
     case REAL_LITERAL:
-        expr = create_real(atof(lexeme));
+        expr = create_real(strtof(lexeme, NULL));
         break;
     case STR_LITERAL:
-        expr = create_str(NULL); /// TODO: implement string variable DS.
+        expr = create_str(create_str_varval(0, create_str_obj(lexeme)));
         break;
     default:
         parser_log_err(parser, token.line, "Expected primitive value.");
@@ -116,9 +115,8 @@ Expression *parse_primitive(Parser *parser)
 Expression *parse_list(Parser *parser)
 {
     int bad_comma = 0;
-    int comma_expected = 1;
+    int comma_expected = 0;
     Token tok = parser_peek_curr(parser);
-    char *lexeme = NULL;
     Expression *expr = NULL;
     Expression *literal = NULL;
 
@@ -137,9 +135,7 @@ Expression *parse_list(Parser *parser)
     if (!list_val)
         return expr;
 
-    // consume 1st literal or nothing...
-    tok = parser_peek_curr(parser);
-
+    // consume 1st literal and so on...
     while (!parser_at_end(parser))
     {
         tok = parser_peek_curr(parser);
@@ -147,39 +143,40 @@ Expression *parse_list(Parser *parser)
         if (tok.type == RBRACK)
             break;
 
-        if (tok.type == COMMA && !comma_expected)
+        if ((tok.type == COMMA && !comma_expected) || bad_comma)
         {
             bad_comma = 1;
             break;
         }
 
-        lexeme = parser_stringify_token(parser, &tok);
-
         switch (tok.type)
         {
         case INTEGER:
             literal = parse_primitive(parser);
-            append_list_obj(list_val, create_int_varval(0, atoi(lexeme)));
-            free(lexeme);
+            append_list_obj(list_val, create_int_varval(0, literal->syntax.int_literal.value));
+            comma_expected = 1;
             break;
         case REAL:
             literal = parse_primitive(parser);
-            append_list_obj(list_val, create_real_varval(0, strtof(lexeme, NULL)));
-            free(lexeme);
+            append_list_obj(list_val, create_real_varval(0, literal->syntax.real_literal.value));
+            comma_expected = 1;
             break;
         case STRBODY:
             literal = parse_primitive(parser);
-            append_list_obj(list_val, create_str_varval(0, lexeme));
-            lexeme = NULL; // NOTE: unbind dynamic string to the list item!
+            append_list_obj(list_val, create_str_varval(0, (StringObj *)(literal->syntax.str_literal.str_obj)));
+            comma_expected = 1;
             break;
         case LBRACK:
             literal = parse_list(parser);
             append_list_obj(list_val, create_list_varval(0, literal->syntax.list_literal.list_obj));
+            comma_expected = 1;
             break;
         case COMMA:
-            comma_expected ^= 1;
+            comma_expected = 0;
             break;
         default:
+            comma_expected = 0;
+            bad_comma = 1;
             break;
         }
 
@@ -292,7 +289,10 @@ Expression *parse_call(Parser *parser)
             break;
 
         if (tok.type == COMMA && !expect_comma)
+        {
+            bad_comma = 1;
             break;
+        }
 
         if (tok.type != COMMA)
             add_arg_call(expr, parse_literal(parser));
@@ -302,6 +302,13 @@ Expression *parse_call(Parser *parser)
     }
 
     parser_advance(parser);
+
+    if (bad_comma)
+    {
+        destroy_expr(expr);
+        free(expr);
+        expr = NULL;
+    }
 
     return expr;
 }
