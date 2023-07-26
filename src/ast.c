@@ -214,6 +214,8 @@ void destroy_expr(Expression *expr)
     }
     else if (expr->type == VAR_USAGE)
     {
+        // NOTE: free var name since only its hash is needed for running.
+        free(expr->syntax.variable.var_name);
         expr->syntax.variable.var_name = NULL;
     }
     else if (expr->type == FUNC_CALL)
@@ -237,6 +239,10 @@ void destroy_expr(Expression *expr)
 
         free(cursor);
         expr->syntax.fn_call.args = NULL;
+
+        // NOTE: free func name since only its hash is needed for running.
+        free(expr->syntax.fn_call.func_name);
+        expr->syntax.fn_call.func_name = NULL;
     }
     else if (expr->type == UNARY_OP)
     {
