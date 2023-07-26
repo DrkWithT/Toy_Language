@@ -2,8 +2,9 @@
 #define VARTYPES_H
 
 #include <stdlib.h>
+#include <string.h>
 
-typedef enum
+typedef enum en_data_type
 {
     BOOL_TYPE,
     INT_TYPE,
@@ -17,7 +18,7 @@ typedef enum
  */
 typedef struct var
 {
-    char *name;
+    DataType type;
     int is_const;
     union
     {
@@ -34,6 +35,7 @@ typedef struct var
         struct
         {
             /* data */
+            float value;
         } real_val;
 
         struct
@@ -54,13 +56,16 @@ VarValue *create_int_varval(int is_const, int value);
 
 VarValue *create_real_varval(int is_const, float value);
 
-VarValue *create_str_varval(int is_const, char *content);
+VarValue *create_str_varval(int is_const, struct st_str_obj *value);
 
-VarValue *create_list_varval(int is_const, void *value);
+VarValue *create_list_varval(int is_const, struct st_list_obj *value);
+
+DataType varval_get_type(const VarValue *variable);
+
+int varval_is_const(const VarValue *variable);
 
 typedef struct st_str_obj
 {
-    size_t capacity;
     size_t length;
     char *source;
 } StringObj;
@@ -71,29 +76,31 @@ StringObj *index_str_obj(StringObj *str, size_t index);
 
 void destroy_str_obj(StringObj *str);
 
-int concat_str_obj(StringObj *str, StringObj *other);
+StringObj *concat_str_obj(StringObj *str, StringObj *other);
+
+typedef struct st_list_node_obj
+{
+    VarValue *value;
+    struct st_list_node_obj *next;
+} ListNodeObj;
+
+ListNodeObj *create_listnode_obj(VarValue *data, ListNodeObj *next);
+
+void destroy_listnode_obj(ListNodeObj *node);
 
 typedef struct st_list_obj
 {
     size_t count;
-    ListObj *head;
-    ListObj *last;
+    ListNodeObj *head; // for fast prepend and destroying
+    ListNodeObj *last; // for fast append
 } ListObj;
 
 ListObj *create_list_obj();
 
 void destroy_list_obj(ListObj *list);
 
-size_t lengthof_str_obj(const ListObj *list);
-
 int append_list_obj(ListObj *list, VarValue *data);
 
-typedef struct st_list_node_obj
-{
-    VarValue *value;
-    ListNodeObj *next;
-} ListNodeObj;
-
-void list_node_obj_init(ListNodeObj *list_node, VarValue *data, ListNodeObj *next);
+int pop_list_obj(ListObj *list);
 
 #endif
