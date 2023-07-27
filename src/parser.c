@@ -4,6 +4,7 @@
  * @brief Implements Parser using recursive descent.
  * @date 2023-07-23
  * @todo Add a parse_assign_expr() function later. See https://craftinginterpreters.com/statements-and-state.html#assignment-syntax
+ * @todo Use parse_logical() after checking its grammar precedence.
  */
 
 #include "frontend/parser.h"
@@ -95,22 +96,26 @@ Expression *parse_primitive(Parser *parser)
     {
     case BOOLEAN:
         expr = create_bool(strncmp(lexeme, "$T", 2) == 0);
+        free(lexeme);
         break;
     case INTEGER:
         expr = create_int(atoi(lexeme));
+        free(lexeme);
         break;
     case REAL:
         expr = create_real(strtof(lexeme, NULL));
+        free(lexeme);
         break;
     case STRBODY:
         expr = create_str(create_str_obj(lexeme));
+        printf("parse_primitive: STRBODY \"%s\"\n", lexeme);
+        // NOTE: StringObj now owns the lexeme content. No free needed yet.
         break;
     default:
         parser_log_err(parser, token.line, "Expected primitive value.");
+        free(lexeme);
         break;
     }
-
-    free(lexeme);  // NOTE: dispose temp c-string!
 
     parser_advance(parser);
 
@@ -157,24 +162,45 @@ Expression *parse_list(Parser *parser)
 
         switch (tok.type)
         {
+        case BOOLEAN:
+            literal = parse_primitive(parser);
+            append_list_obj(list_val, create_bool_varval(0, literal->syntax.bool_literal.flag));
+
+            destroy_expr(literal);
+            free(literal);
+
+            break;
         case INTEGER:
             literal = parse_primitive(parser);
             append_list_obj(list_val, create_int_varval(0, literal->syntax.int_literal.value));
+
+            destroy_expr(literal);
+            free(literal);
+
             comma_expected = 1;
             break;
         case REAL:
             literal = parse_primitive(parser);
             append_list_obj(list_val, create_real_varval(0, literal->syntax.real_literal.value));
+
+            destroy_expr(literal);
+            free(literal);
+
             comma_expected = 1;
             break;
         case STRBODY:
             literal = parse_primitive(parser);
             append_list_obj(list_val, create_str_varval(0, (StringObj *)(literal->syntax.str_literal.str_obj)));
+
+            free(literal);
+
             comma_expected = 1;
             break;
         case LBRACK:
             literal = parse_list(parser);
             append_list_obj(list_val, create_list_varval(0, literal->syntax.list_literal.list_obj));
+            free(literal);
+
             comma_expected = 1;
             break;
         case COMMA:
@@ -186,9 +212,6 @@ Expression *parse_list(Parser *parser)
             bad_comma = 1;
             break;
         }
-
-        destroy_expr(literal);
-        free(literal); // NOTE: clear temp literal object since its content has been stored in the list
     }
 
     parser_advance(parser);  // NOTE: pass list's closing bracket
@@ -219,8 +242,11 @@ Expression *parse_literal(Parser *parser)
     switch (token.type)
     {
     case LPAREN:
+        puts("nested expr");
         parser_advance(parser);
         expr = parse_expr(parser);
+
+        token = parser_peek_curr(parser);
 
         if (token.type != RPAREN)
         {
@@ -229,9 +255,13 @@ Expression *parse_literal(Parser *parser)
             expr = NULL;
         }
         else
+        {
+            puts("pass RPAREN");
             parser_advance(parser);
+        }
 
         break;
+    case BOOLEAN:
     case INTEGER:
     case REAL:
     case STRBODY:
@@ -270,17 +300,20 @@ Expression *parse_call(Parser *parser)
 
     parser_advance(parser);
     tok = parser_peek_curr(parser);
+    prev = parser_peek_back(parser);
 
     // handle case of lone identifier usage (a variable!)
     if (tok.type != LPAREN)
     {
         lexeme = parser_stringify_token(parser, &prev);
         expr = create_var(0, lexeme);
+
         return expr;
     }
 
     // prepare call expression node with identifier string
-    lexeme = parser_stringify_token(parser, &parser->previous);
+    lexeme = parser_stringify_token(parser, &prev);
+    printf("making call expr for \"%s\"\n", lexeme);
     expr = create_call(lexeme);
 
     // process argument listing until ')'
@@ -300,10 +333,11 @@ Expression *parse_call(Parser *parser)
         }
 
         if (tok.type != COMMA)
-            add_arg_call(expr, parse_literal(parser));
+            add_arg_call(expr, parse_expr(parser));
+        else
+            parser_advance(parser); // NOTE: don't advance twice on non-comma tokens!
 
         expect_comma ^= 1;
-        parser_advance(parser);
     }
 
     parser_advance(parser);
@@ -322,24 +356,23 @@ Expression *parse_unary(Parser *parser)
 {
     puts("parse_unary");
     Token tok = parser_peek_curr(parser);
+    char operator_symbol = parser->src_copy_ptr[tok.begin];
     Expression *expr = NULL;
 
-    if (tok.type == OPERATOR && parser->src_copy_ptr[tok.begin] == '-' && tok.span == 1)
+    if (tok.type == OPERATOR && tok.span == 1 && operator_symbol == '-')
     {
-        // NOTE: negation is only allowed on literals for simplicity!
         parser_advance(parser);
         expr = create_unary(OP_NEG, parse_literal(parser));
-        parser_advance(parser);
     }
     else if (tok.type == IDENTIFIER)
     {
-        // parse a function call expression here
+        // NOTE: parse a function call expression here... var uses also handled here!
         expr = parse_call(parser);
     }
     else
     {
+        // NOTE: an unary can also be another positive value (no minus!)
         expr = parse_literal(parser);
-        return expr;
     }
 
     return expr;
@@ -355,33 +388,41 @@ Expression *parse_factor(Parser *parser)
     Expression *right = NULL;
     Expression *temp;  // next expr node on right side
     Expression *expr = left;  // result expr node
+    int valid_oper = 0;
 
     // parse and validate operator-literal pairs after left side (parser auto advances!)
     while (!parser_at_end(parser))
     {
         tok = parser_peek_curr(parser);
 
-        if (tok.type != OPERATOR && tok.type != IDENTIFIER && tok.type != BOOLEAN && tok.type != INTEGER && tok.type != REAL && tok.type != LBRACK)
+        if (tok.type != OPERATOR && !valid_oper)
             return expr;
 
         char operator_symbol = parser->src_copy_ptr[tok.begin];
 
-        if (tok.span != 1 && tok.type == OPERATOR && operator_symbol != '*' && operator_symbol != '/')
+        printf("parse_factor: symbol1 = '%c'\n", operator_symbol);
+
+        if (tok.span != 1 || (tok.type == OPERATOR && operator_symbol != '*' && operator_symbol != '/'))
         {
-            parser_log_err(parser, tok.line, "Invalid operator.");
-            parser_advance(parser);
+            puts("pre-leave parse_factor");
             return expr;
         }
         else if (tok.type == OPERATOR)
         {
             operation = (operator_symbol == '*') ? OP_MUL : OP_DIV;
+            valid_oper = 1;
             parser_advance(parser);
+        }
+        else if (tok.type == RPAREN)
+        {
+            // NOTE: stop parsing at ')' which marks expr end!
+            break;
         }
         else
         {
+            puts("make factor expr");
             right = parse_unary(parser);
-            left = expr;
-            temp = create_binary(operation, left, right);
+            temp = create_binary(operation, expr, right);
             expr = temp;
         }
     }
@@ -398,33 +439,40 @@ Expression *parse_term(Parser *parser)
     Expression *right = NULL;
     Expression *temp;  // next expr node on right side
     Expression *expr = left;  // result expr node
+    int valid_oper = 0;
 
     // parse and validate operator-literal pairs after left side (parser auto advances!)
     while (!parser_at_end(parser))
     {
         tok = parser_peek_curr(parser);
 
-        if (tok.type != OPERATOR && tok.type != IDENTIFIER && tok.type != BOOLEAN && tok.type != INTEGER && tok.type != REAL && tok.type != LBRACK)
+        if (tok.type != OPERATOR && !valid_oper)
             return expr;
 
         char operator_symbol = parser->src_copy_ptr[tok.begin];
 
-        if (tok.span != 1 && tok.type == OPERATOR && operator_symbol != '+' && operator_symbol != '-')
+        printf("parse_term: symbol1 = '%c'\n", operator_symbol);
+
+        if (tok.span != 1 || (tok.type == OPERATOR && operator_symbol != '+' && operator_symbol != '-'))
         {
-            parser_log_err(parser, tok.line, "Invalid operator.");
-            parser_advance(parser);
+            puts("pre-leave parse_term");
             return expr;
         }
         else if (tok.type == OPERATOR)
         {
             operation = (operator_symbol == '+') ? OP_ADD : OP_SUB;
+            valid_oper = 1;
             parser_advance(parser);
+        }
+        else if (tok.type == RPAREN)
+        {
+            break;
         }
         else
         {
+            puts("make term expr");
             right = parse_factor(parser);
-            left = expr;
-            temp = create_binary(operation, left, right);
+            temp = create_binary(operation, expr, right);
             expr = temp;
         }
     }
@@ -448,10 +496,9 @@ Expression *parse_comparison(Parser *parser)
     {
         tok = parser_peek_curr(parser);
 
-        if (tok.type != OPERATOR && tok.type != IDENTIFIER && tok.type != BOOLEAN && tok.type != INTEGER && tok.type != REAL && tok.type != LBRACK)
+        if (tok.type != OPERATOR && !valid_oper)
             return expr;
 
-        char first_symbol = parser->src_copy_ptr[tok.begin];
         char *lexeme = parser_stringify_token(parser, &tok);
 
         if (strncmp(lexeme, ">=", 2) == 0)
@@ -466,13 +513,13 @@ Expression *parse_comparison(Parser *parser)
             valid_oper = 1;
             parser_advance(parser);
         }
-        else if (first_symbol == '>')
+        else if (lexeme[0] == '>' && lexeme[1] == '\0')
         {
             operation = OP_GT;
             valid_oper = 1;
             parser_advance(parser);
         }
-        else if (first_symbol == '<')
+        else if (lexeme[0] == '<' && lexeme[1] == '\0')
         {
             operation = OP_LT;
             valid_oper = 1;
@@ -480,11 +527,19 @@ Expression *parse_comparison(Parser *parser)
         }
         else if (valid_oper)
         {
+            puts("make comparison expr");
             right = parse_term(parser);
-            left = expr;
-            temp = create_binary(operation, left, right);
+            temp = create_binary(operation, expr, right);
             expr = temp;
-            valid_oper = 0;
+        }
+        else if (tok.type == OPERATOR)
+        {
+            puts("pre-leave parse_comparison");
+            return expr;
+        }
+        else if (tok.type == RPAREN)
+        {
+            break;
         }
         else
         {
@@ -521,7 +576,7 @@ Expression *parse_equality(Parser *parser)
     {
         tok = parser_peek_curr(parser);
 
-        if (tok.type != OPERATOR && tok.type != IDENTIFIER && tok.type != BOOLEAN && tok.type != INTEGER && tok.type != REAL && tok.type != LBRACK)
+        if (tok.type != OPERATOR && !valid_oper)
             return expr;
 
         char *lexeme = parser_stringify_token(parser, &tok);
@@ -541,10 +596,17 @@ Expression *parse_equality(Parser *parser)
         else if (valid_oper)
         {
             right = parse_comparison(parser);
-            left = expr;
-            temp = create_binary(operation, left, right);
+            temp = create_binary(operation, expr, right);
             expr = temp;
-            valid_oper = 0;
+        }
+        else if (tok.type == OPERATOR)
+        {
+            puts("pre-leave parse_equality");
+            return expr;
+        }
+        else if (tok.type == RPAREN)
+        {
+            break;
         }
         else
         {
@@ -564,9 +626,9 @@ Expression *parse_equality(Parser *parser)
     return expr;
 }
 
-Expression *parse_conditions(Parser *parser)
+/*Expression *parse_logical(Parser *parser)
 {
-    puts("parse_conditions");
+    puts("parse_logical");
     OpType operation;
     Token tok;
     Expression *left = parse_equality(parser);
@@ -580,7 +642,7 @@ Expression *parse_conditions(Parser *parser)
     {
         tok = parser_peek_curr(parser);
 
-        if (tok.type != OPERATOR && tok.type != IDENTIFIER && tok.type != BOOLEAN && tok.type != INTEGER && tok.type != REAL && tok.type != LBRACK)
+        if (tok.type != OPERATOR && !valid_oper)
             return expr;
 
         char *lexeme = parser_stringify_token(parser, &tok);
@@ -600,10 +662,12 @@ Expression *parse_conditions(Parser *parser)
         else if (valid_oper)
         {
             right = parse_equality(parser);
-            left = expr;
-            temp = create_binary(operation, left, right);
+            temp = create_binary(operation, expr, right);
             expr = temp;
-            valid_oper = 0;
+        }
+        else if (tok.type == RPAREN)
+        {
+            break;
         }
         else
         {
@@ -621,7 +685,7 @@ Expression *parse_conditions(Parser *parser)
     }
 
     return expr;
-}
+}*/
 
 Expression *parse_expr(Parser *parser)
 {
@@ -869,8 +933,6 @@ Statement *parse_return_stmt(Parser *parser)
     if (!result_expr)
     {
         parser_log_err(parser, tok.line, "Could not find expression.");
-        destroy_expr(result_expr);
-        free(result_expr);
         return ret_stmt;
     }
 
@@ -892,6 +954,8 @@ Statement *parse_block_stmt(Parser *parser)
         checked_tok = parser_peek_curr(parser);
         lexeme = parser_stringify_token(parser, &checked_tok);
 
+        printf("parsing stmt with begin: \"%s\"\n", lexeme);
+
         if (strncmp(lexeme, "while", 5) == 0)
             temp_stmt = parse_while_stmt(parser);
         else if (strncmp(lexeme, "if", 2) == 0)
@@ -902,11 +966,12 @@ Statement *parse_block_stmt(Parser *parser)
             parser_advance(parser);
             break;
         }
+        else if (strncmp(lexeme, "return", 6) == 0)
+            temp_stmt = parse_return_stmt(parser);
         else if (strncmp(lexeme, "let", 3) == 0 || strncmp(lexeme, "const", 5) == 0)
             temp_stmt = parse_var_decl(parser);
         else
-            temp_stmt = parse_expr_stmt(parser);        
-
+            temp_stmt = parse_expr_stmt(parser);
 
         free(lexeme);
 
@@ -929,7 +994,7 @@ Statement *parse_func_stmt(Parser *parser)
     puts("parse_func_stmt");
     int bad_syntax = 0;
     int comma_expected = 0;
-    Token tok;
+    Token tok = parser_peek_curr(parser);
     char *lexeme = NULL;
     Expression *param_expr = NULL;
     Statement *fn_stmt = NULL;
@@ -938,6 +1003,7 @@ Statement *parse_func_stmt(Parser *parser)
     if (tok.type != KEYWORD)
         return fn_stmt;
 
+    puts("parse func begin");
     lexeme = parser_stringify_token(parser, &tok);
 
     if (strncmp(lexeme, "proc", 4) != 0)
@@ -947,7 +1013,14 @@ Statement *parse_func_stmt(Parser *parser)
         return fn_stmt;
     }
 
-    // parse arguments
+    // parse identifier: check parse order of ident, lparen, etc!
+    parser_advance(parser);
+    tok = parser_peek_curr(parser);
+    lexeme = parser_stringify_token(parser, &tok);
+    fn_stmt = create_func_stmt(lexeme, NULL);
+    lexeme = NULL;
+
+    // parse args
     parser_advance(parser);
     tok = parser_peek_curr(parser);
 
@@ -955,17 +1028,15 @@ Statement *parse_func_stmt(Parser *parser)
         return fn_stmt;
 
     parser_advance(parser);
-    tok = parser_peek_curr(parser);
-    lexeme = parser_stringify_token(parser, &tok);
-    fn_stmt = create_func_stmt(lexeme, NULL);
-    lexeme = NULL;
 
+    puts("parsing func args");
     while (!parser_at_end(parser))
     {
         tok = parser_peek_curr(parser);
 
         if (tok.type == RPAREN)
         {
+            puts("end args");
             parser_advance(parser);
             break;
         }
@@ -977,7 +1048,8 @@ Statement *parse_func_stmt(Parser *parser)
         }
         else if (tok.type == COMMA)
         {
-            comma_expected ^= 1;
+            comma_expected = 0;
+            parser_advance(parser);
         }
         else
         {
@@ -992,9 +1064,6 @@ Statement *parse_func_stmt(Parser *parser)
         }
 
         put_arg_func_stmt(fn_stmt, param_expr);
-
-        parser_advance(parser);
-        break;
     }
 
     if (bad_syntax)
@@ -1008,6 +1077,7 @@ Statement *parse_func_stmt(Parser *parser)
     }
 
     // parse function body
+    puts("parsing func body");
     Statement *fn_body = parse_block_stmt(parser);
 
     if (!fn_body)
@@ -1089,6 +1159,7 @@ Statement *parse_expr_stmt(Parser *parser)
     if (!inner_expr)
         return NULL;
 
+    puts("finished expr stmt");
     return create_expr_stmt(inner_expr);
 }
 

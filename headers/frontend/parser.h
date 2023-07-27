@@ -48,7 +48,7 @@ Expression *parse_comparison(Parser *parser);
 
 Expression *parse_equality(Parser *parser);
 
-Expression *parse_conditions(Parser *parser);
+// Expression *parse_logical(Parser *parser);  // TODO: use later.
 
 Expression *parse_expr(Parser *parser);
 
