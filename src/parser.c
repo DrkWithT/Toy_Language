@@ -3,6 +3,7 @@
  * @author Derek Tan
  * @brief Implements Parser using recursive descent.
  * @date 2023-07-23
+ * @todo Add a parse_assign_expr() function later. See https://craftinginterpreters.com/statements-and-state.html#assignment-syntax
  */
 
 #include "frontend/parser.h"
@@ -10,6 +11,7 @@
 void parser_init(Parser *parser, char *src)
 {
     parser->src_copy_ptr = src;
+    parser->ready_flag = src != NULL;
     lexer_init(&parser->lexer, src);
     token_init(&parser->previous, UNKNOWN, 0, 0, 0);
     token_init(&parser->current, UNKNOWN, 0, 0, 0);
@@ -1068,7 +1070,7 @@ Statement *parse_stmt(Parser *parser)
     Statement *stmt = NULL;
 
     if (tok.type == IDENTIFIER)
-        stmt = parse_expr(parser);
+        stmt = parse_expr_stmt(parser);
     else if (strncmp(lexeme, "use", 3) == 0)
         stmt = parse_use_stmt(parser);
     else if (strncmp(lexeme, "module", 6) == 0)
@@ -1086,15 +1088,20 @@ Statement *parse_stmt(Parser *parser)
 
 Script *parser_parse_all(Parser *parser, const char *script_name)
 {
+    if (!parser->ready_flag)
+        return NULL;
+
+    int done_flag = 0;
     Script *program = malloc(sizeof(Script));
     init_script(program, script_name, 4);
     Statement *temp = NULL;
 
-    while(!parser_at_end(parser))
+    while(!done_flag)
     {
         temp = parse_stmt(parser);
+        done_flag = parser_at_end(parser);
 
-        if (!temp)
+        if (!temp && !done_flag)
         {
             dispose_script(program);
             free(program);
@@ -1104,6 +1111,8 @@ Script *parser_parse_all(Parser *parser, const char *script_name)
 
         grow_script(program, temp);
     }
+
+    parser->src_copy_ptr = NULL; // NOTE: unbind source string when done!
 
     return program;
 }

@@ -9,6 +9,7 @@
 typedef struct
 {
     char *src_copy_ptr;
+    int ready_flag;
     Lexer lexer;
     Token previous;
     Token current;
