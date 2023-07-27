@@ -600,21 +600,25 @@ void destroy_stmt(Statement *stmt)
 void init_script(Script *script, const char *name, unsigned int old_count)
 {
     script->name = name;
-    script->count = old_count;
+    script->count = 0;  // "highest" last slot index before capacity
+    script->capacity = old_count;
     script->stmts = malloc(sizeof(Statement*) * old_count);
 
     if (!script->stmts) script->capacity = 0; // NOTE: do not resize invalid vector memory.
+
+    for (size_t i = 0; i < script->count; i++)
+        script->stmts[i] = NULL;
 }
 
 void grow_script(Script *script, Statement *stmt_obj)
 {
-    size_t curr_count = script->count;
+    size_t next_slot = script->count;
     size_t old_capacity = script->capacity;
     size_t new_capacity = old_capacity << 1;
 
-    if (curr_count < old_capacity)
+    if (next_slot < old_capacity)
     {
-        script->stmts[curr_count - 1] = stmt_obj;
+        script->stmts[next_slot] = stmt_obj;
         script->count++;
         return;
     }
@@ -623,13 +627,14 @@ void grow_script(Script *script, Statement *stmt_obj)
 
     if (raw_block != NULL)
     {
-        for (size_t i = old_capacity; i < new_capacity; i++)
+        for (size_t i = next_slot; i < new_capacity; i++)
             raw_block[i] = NULL;
-        
+
         script->stmts = raw_block;
-        script->stmts[old_capacity] = stmt_obj;
+        script->stmts[next_slot] = stmt_obj;
         
-        script->capacity++;
+        script->count++;
+        script->capacity = new_capacity;
     }
 }
 
