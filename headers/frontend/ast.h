@@ -8,6 +8,7 @@
  */
 
 #include <stdlib.h>
+#include "backend/values/vartypes.h"
 
 typedef enum en_stmt_type
 {
@@ -77,12 +78,12 @@ typedef struct st_expression
 
         struct
         {
-            void *str_obj;
+            StringObj *str_obj;
         } str_literal;
 
         struct
         {
-            void *list_obj;
+            ListObj *list_obj;
         } list_literal;
 
         struct
@@ -120,9 +121,9 @@ Expression *create_int(int val);
 
 Expression *create_real(float val);
 
-Expression *create_str(void *str_obj);
+Expression *create_str(StringObj *str_obj);
 
-Expression *create_list(void *list_val);
+Expression *create_list(ListObj *list_val);
 
 Expression *create_var(int is_lvalue, char *name);
 

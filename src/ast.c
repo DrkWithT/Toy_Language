@@ -3,6 +3,7 @@
  * @author Derek Tan
  * @brief Implements AST structures and functions.
  * @date 2023-07-23
+ * @todo Modify AST node destroy_xx functions when interpreter is done: the str_obj and list_obj properties must be unbound as they are managed by Scope objects.
  */
 
 #include "frontend/ast.h"
@@ -48,7 +49,7 @@ Expression *create_real(float val)
     return expr;
 }
 
-Expression *create_str(void *str_obj)
+Expression *create_str(StringObj *str_obj)
 {
     Expression *expr = malloc(sizeof(Expression));
 
@@ -61,7 +62,7 @@ Expression *create_str(void *str_obj)
     return expr;
 }
 
-Expression *create_list(void *list_val)
+Expression *create_list(ListObj *list_val)
 {
     Expression *expr = malloc(sizeof(Expression));
 
@@ -206,10 +207,16 @@ void destroy_expr(Expression *expr)
 {
     if (expr->type == STR_LITERAL)
     {
+        // TODO: remove destroy-free when interpreter is done.
+        destroy_str_obj(expr->syntax.str_literal.str_obj);
+        free(expr->syntax.str_literal.str_obj);
         expr->syntax.str_literal.str_obj = NULL;
     }
     else if (expr->type == LIST_LITERAL)
     {
+        // TODO: remove this destroy-free too on interpreter finish.
+        destroy_list_obj(expr->syntax.list_literal.list_obj);
+        free(expr->syntax.list_literal.list_obj);
         expr->syntax.list_literal.list_obj = NULL;
     }
     else if (expr->type == VAR_USAGE)
@@ -646,4 +653,7 @@ void dispose_script(Script *script)
 
         cursor++;
     }
+
+    // NOTE: unbind script file name since it's a static c-string passed by argv!
+    script->name = NULL;
 }
