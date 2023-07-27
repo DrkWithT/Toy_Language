@@ -1,5 +1,4 @@
 #include "frontend/parser.h"
-// #include "frontend/parser.h"
 
 /**
  * @file main.c 
@@ -7,6 +6,35 @@
  * @brief Driver code for the parser with interpreter.
  * @date 2023-07-22
  */
+
+/// SECTION: Debug code
+
+static const char *stmt_names[] = {
+    "MODULE_DEF",
+    "MODULE_USE",
+    "EXPR_STMT",
+    "VAR_DECL",
+    "BLOCK_STMT",
+    "FUNC_DECL",
+    "WHILE_STMT",
+    "IF_STMT",
+    "OTHERWISE_STMT",
+    "BREAK_STMT",
+    "RETURN_STMT"
+};
+
+void print_stmt(const Statement *stmt)
+{
+    if (!stmt)
+    {
+        puts("(NULL)");
+        return;
+    }
+
+    printf("type \"%s\" stmt\n", stmt_names[stmt->type]);
+}
+
+/// SECTION: Driver code
 
 int main(int argc, char *argv[])
 {
@@ -28,15 +56,36 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // char *source = read_file(argv[2]);
+    // Load script file.
+    char *source = load_file(argv[2]);
 
-    // if (!source)
-    // {
-    //     printf("Failed to read source file %s\n", argv[2]);
-    //     return 1;
-    // }
+    if (!source)
+    {
+        printf("Failed to read source file %s\n", argv[2]);
+        return 1;
+    }
 
-    // free(source);
+    // Use Parser.
+    Parser parser;
+    parser_init(&parser, source);
+
+    Script *program = parser_parse_all(&parser, argv[2]);
+
+    if (!program)
+    {
+        printf("Failed to parse program. :(\n");
+        free(source);
+        return 1;
+    }
+
+    for (size_t i = 0; i < program->count; i++)
+    {
+        print_stmt(program->stmts[i]);
+    }
+
+    dispose_script(program);
+    free(program);
+    free(source);
 
     return 0;
 }
