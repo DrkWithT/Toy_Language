@@ -102,7 +102,7 @@ Expression *parse_primitive(Parser *parser)
         expr = create_real(strtof(lexeme, NULL));
         break;
     case STR_LITERAL:
-        expr = create_str(create_str_varval(0, create_str_obj(lexeme)));
+        expr = create_str(create_str_obj(lexeme));
         break;
     default:
         parser_log_err(parser, token.line, "Expected primitive value.");
@@ -516,7 +516,6 @@ Expression *parse_equality(Parser *parser)
         if (tok.type != OPERATOR && tok.type != IDENTIFIER && tok.type != BOOLEAN && tok.type != INTEGER && tok.type != REAL && tok.type != LBRACK)
             return expr;
 
-        char first_symbol = parser->src_copy_ptr[tok.begin];
         char *lexeme = parser_stringify_token(parser, &tok);
 
         if (strncmp(lexeme, "!=", 2) == 0)
@@ -575,7 +574,6 @@ Expression *parse_conditions(Parser *parser)
         if (tok.type != OPERATOR && tok.type != IDENTIFIER && tok.type != BOOLEAN && tok.type != INTEGER && tok.type != REAL && tok.type != LBRACK)
             return expr;
 
-        char first_symbol = parser->src_copy_ptr[tok.begin];
         char *lexeme = parser_stringify_token(parser, &tok);
 
         if (strncmp(lexeme, "||", 2) == 0)
@@ -734,7 +732,6 @@ Statement *parse_if_stmt(Parser *parser)
     char *lexeme = NULL;
     Statement *if_stmt = NULL;
     Statement *first_block = NULL;
-    Statement *other_block = NULL;
 
     // check for starting keyword "if" to validate stmt
     if (tok.type != KEYWORD)
@@ -783,7 +780,7 @@ Statement *parse_if_stmt(Parser *parser)
     }
 
     if_stmt->syntax.if_stmt.first = first_block;
-    if_stmt->syntax.if_stmt.other = parse_otherwise_stmt(parser);
+    if_stmt->syntax.if_stmt.other = parse_otherwise_stmt(parser);;
 
     return if_stmt;
 }
@@ -815,7 +812,20 @@ Statement *parse_while_stmt(Parser *parser)
     while_stmt = create_while_stmt(NULL, NULL);
 
     while_stmt->syntax.while_stmt.condition = parse_expr(parser);
-    while_stmt->syntax.while_stmt.stmts = parse_block_stmt(parser);
+    loop_block = parse_block_stmt(parser);
+
+    if (!loop_block)
+    {
+        tok = parser_peek_curr(parser);
+        parser_log_err(parser, tok.line, "Could not parse loop block.");
+        destroy_stmt(while_stmt);
+        free(while_stmt);
+        while_stmt = NULL;
+
+        return while_stmt;
+    }
+
+    while_stmt->syntax.while_stmt.stmts = loop_block;
 
     return while_stmt;
 }
