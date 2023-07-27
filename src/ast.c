@@ -616,7 +616,7 @@ void grow_script(Script *script, Statement *stmt_obj)
     size_t old_capacity = script->capacity;
     size_t new_capacity = old_capacity << 1;
 
-    if (next_slot < old_capacity)
+    if (next_slot < old_capacity - 1)
     {
         script->stmts[next_slot] = stmt_obj;
         script->count++;

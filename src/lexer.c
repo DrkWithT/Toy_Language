@@ -265,6 +265,7 @@ Token lexer_next_token(Lexer *lexer)
     // Handle usual tokens.
     if (IS_WSP(c)) return lexer_lex_wspace(lexer);
     else if (MATCH_CHAR(c, '#')) return lexer_lex_comment(lexer);
+    else if (MATCH_CHAR(c, 'm')) return lexer_lex_keyword(lexer, "module");
     else if (MATCH_CHAR(c, 'u')) return lexer_lex_keyword(lexer, "use");
     else if (MATCH_CHAR(c, 'l')) return lexer_lex_keyword(lexer, "let");
     else if (MATCH_CHAR(c, 'c')) return lexer_lex_keyword(lexer, "const");
