@@ -129,13 +129,13 @@ Expression *create_var(int is_lvalue, char *name);
 
 Expression *create_call(char *fn_name);
 
-void add_arg_call(Expression *call_expr, Expression *arg_expr);
+int add_arg_call(Expression *call_expr, Expression *arg_expr);
 
 /**
  * @brief Downsizes the memory taken by this Expression. Arg vector capacity is shrunk to its count.
  * @param call_expr
  */
-void pack_mem_call(Expression *call_expr);
+int pack_mem_call(Expression *call_expr);
 
 /**
  * @brief Clears the internal Expression vector. Names are unbound instead, as they are managed by the interpreter context.
@@ -250,7 +250,7 @@ int put_arg_func_stmt(Statement *fn_decl, Expression *arg_expr);
 
 int pack_args_func_stmt(Statement *fn_decl); // TODO: later use!
 
-int clear_func_stmt(Statement *fn_decl);
+void clear_func_stmt(Statement *fn_decl);
 
 Statement *create_while_stmt(Expression *conditional, Statement *block);
 

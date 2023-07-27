@@ -107,7 +107,6 @@ StringObj *create_str_obj(char *source)
 StringObj *index_str_obj(StringObj *str, size_t index)
 {
     size_t parent_length = str->length;
-    const char *str_view = str->source;
     char *buffer = NULL;
     StringObj *str_obj = NULL;
 
@@ -124,6 +123,8 @@ StringObj *index_str_obj(StringObj *str, size_t index)
     if (str_obj != NULL)
     {
         str_obj->length = 1;
+        buffer[0] = str->source[index];
+        buffer[1] = '\0';
         str_obj->source = buffer;
     }
 

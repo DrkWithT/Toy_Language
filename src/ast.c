@@ -108,7 +108,7 @@ Expression *create_call(char *fn_name)
     return expr;
 }
 
-void add_arg_call(Expression *call_expr, Expression *arg_expr)
+int add_arg_call(Expression *call_expr, Expression *arg_expr)
 {
     size_t old_capacity = call_expr->syntax.fn_call.cap;
     size_t new_capacity = old_capacity << 1;
@@ -127,12 +127,12 @@ void add_arg_call(Expression *call_expr, Expression *arg_expr)
     return 0;
 }
 
-void pack_mem_call(Expression *call_expr)
+int pack_mem_call(Expression *call_expr)
 {
     size_t curr_capacity = call_expr->syntax.fn_call.cap;
     size_t curr_count = call_expr->syntax.fn_call.argc;
 
-    if (curr_capacity <= curr_count) return;
+    if (curr_capacity <= curr_count) return 1;
 
     Expression **raw_args = realloc(call_expr->syntax.fn_call.args, sizeof(Expression *) * curr_count);
 
@@ -176,16 +176,16 @@ int clear_mem_call(Expression *call_expr)
 
 Expression *create_unary(OpType op, Expression *expr)
 {
-    Expression *expr = malloc(sizeof(Expression));
+    Expression *unary_expr = malloc(sizeof(Expression));
 
-    if (expr != NULL)
+    if (unary_expr != NULL)
     {
-        expr->type = UNARY_OP;
-        expr->syntax.unary_op.op = op;
-        expr->syntax.unary_op.expr = expr;
+        unary_expr->type = UNARY_OP;
+        unary_expr->syntax.unary_op.op = op;
+        unary_expr->syntax.unary_op.expr = expr;
     }
 
-    return expr;
+    return unary_expr;
 }
 
 Expression *create_binary(OpType op, Expression *left, Expression *right)
@@ -319,7 +319,7 @@ int pack_block_stmt(Statement *block_stmt)
     size_t curr_capacity = block_stmt->syntax.block.capacity;
     size_t curr_count = block_stmt->syntax.block.count;
 
-    if (curr_capacity <= curr_count) return;
+    if (curr_capacity <= curr_count) return 1;
 
     Statement **raw_block = realloc(block_stmt->syntax.block.stmts, sizeof(Statement *) * curr_count);
 
@@ -414,6 +414,8 @@ Statement *create_func_stmt(char *fn_name, Statement *block)
         if (!stmt->syntax.func_decl.func_args)
             stmt->syntax.func_decl.cap = 0;  // NOTE: mark bad memory as empty!
     }
+
+    return stmt;
 }
 
 int put_arg_func_stmt(Statement *fn_decl, Expression *arg_expr)
@@ -441,7 +443,7 @@ int pack_args_func_stmt(Statement *fn_decl)
     size_t curr_capacity = fn_decl->syntax.func_decl.cap;
     size_t curr_count = fn_decl->syntax.func_decl.argc;
 
-    if (curr_capacity <= curr_count) return;
+    if (curr_capacity <= curr_count) return 1;
 
     Expression **raw_args = realloc(fn_decl->syntax.func_decl.func_args, sizeof(Expression *) * curr_count);
 
@@ -454,7 +456,7 @@ int pack_args_func_stmt(Statement *fn_decl)
     return 0;
 }
 
-int clear_func_stmt(Statement *fn_decl)
+void clear_func_stmt(Statement *fn_decl)
 {
     // 1. Free memory for argument objects.
     Expression **args_cursor = fn_decl->syntax.func_decl.func_args;
@@ -614,7 +616,7 @@ void grow_script(Script *script, Statement *stmt_obj)
     {
         script->stmts[curr_count - 1] = stmt_obj;
         script->count++;
-        return 1;
+        return;
     }
 
     Statement **raw_block = realloc(script->stmts, sizeof(Statement *) * new_capacity);
