@@ -15,7 +15,7 @@ void parser_init(Parser *parser, char *src)
     lexer_init(&parser->lexer, src);
     token_init(&parser->previous, UNKNOWN, 0, 0, 0);
     token_init(&parser->current, UNKNOWN, 0, 0, 0);
-    parser_advance(parser); // NOTE: move to 1st token for a valid parse start!
+    parser_advance(parser);
 }
 
 int parser_at_end(Parser *parser)
@@ -35,7 +35,7 @@ Token parser_peek_curr(Parser *parser)
 
 void parser_advance(Parser *parser)
 {
-    if (!parser_at_end(parser)) return;
+    if (parser_at_end(parser)) return;
 
     // advance previous token hold...
     parser->previous = parser->current;
@@ -83,6 +83,7 @@ char *parser_stringify_token(Parser *parser, Token *token_ptr)
 
 Expression *parse_primitive(Parser *parser)
 {
+    puts("parse_primitive");
     Token token = parser_peek_curr(parser);
     char *lexeme = parser_stringify_token(parser, &token);
     Expression *expr = NULL;
@@ -92,16 +93,16 @@ Expression *parse_primitive(Parser *parser)
 
     switch (token.type)
     {
-    case BOOL_LITERAL:
+    case BOOLEAN:
         expr = create_bool(strncmp(lexeme, "$T", 2) == 0);
         break;
-    case INT_LITERAL:
+    case INTEGER:
         expr = create_int(atoi(lexeme));
         break;
-    case REAL_LITERAL:
+    case REAL:
         expr = create_real(strtof(lexeme, NULL));
         break;
-    case STR_LITERAL:
+    case STRBODY:
         expr = create_str(create_str_obj(lexeme));
         break;
     default:
@@ -111,11 +112,14 @@ Expression *parse_primitive(Parser *parser)
 
     free(lexeme);  // NOTE: dispose temp c-string!
 
+    parser_advance(parser);
+
     return expr;
 }
 
 Expression *parse_list(Parser *parser)
 {
+    puts("parse_list");
     int bad_comma = 0;
     int comma_expected = 0;
     Token tok = parser_peek_curr(parser);
@@ -175,6 +179,7 @@ Expression *parse_list(Parser *parser)
             break;
         case COMMA:
             comma_expected = 0;
+            parser_advance(parser);
             break;
         default:
             comma_expected = 0;
@@ -184,8 +189,6 @@ Expression *parse_list(Parser *parser)
 
         destroy_expr(literal);
         free(literal); // NOTE: clear temp literal object since its content has been stored in the list
-
-        parser_advance(parser);
     }
 
     parser_advance(parser);  // NOTE: pass list's closing bracket
@@ -209,6 +212,7 @@ Expression *parse_list(Parser *parser)
 
 Expression *parse_literal(Parser *parser)
 {
+    puts("parse_literal");
     Token token = parser_peek_curr(parser);
     Expression *expr = NULL;
 
@@ -232,7 +236,6 @@ Expression *parse_literal(Parser *parser)
     case REAL:
     case STRBODY:
         expr = parse_primitive(parser);
-        parser_advance(parser);
         break;
     case LBRACK:
         expr = parse_list(parser);
@@ -250,6 +253,7 @@ Expression *parse_literal(Parser *parser)
 
 Expression *parse_call(Parser *parser)
 {
+    puts("parse_call");
     // NOTE: parse_call technically should be named parse_usage for handling identifier expressions.
     Token prev;
     Token tok = parser_peek_curr(parser);
@@ -264,7 +268,6 @@ Expression *parse_call(Parser *parser)
         return expr;
     }
 
-    prev = tok;
     parser_advance(parser);
     tok = parser_peek_curr(parser);
 
@@ -317,6 +320,7 @@ Expression *parse_call(Parser *parser)
 
 Expression *parse_unary(Parser *parser)
 {
+    puts("parse_unary");
     Token tok = parser_peek_curr(parser);
     Expression *expr = NULL;
 
@@ -343,6 +347,7 @@ Expression *parse_unary(Parser *parser)
 
 Expression *parse_factor(Parser *parser)
 {
+    puts("parse_factor");
     // parse left side
     OpType operation;
     Token tok;
@@ -386,6 +391,7 @@ Expression *parse_factor(Parser *parser)
 
 Expression *parse_term(Parser *parser)
 {
+    puts("parse_term");
     OpType operation;
     Token tok;
     Expression *left = parse_factor(parser);
@@ -428,6 +434,7 @@ Expression *parse_term(Parser *parser)
 
 Expression *parse_comparison(Parser *parser)
 {
+    puts("parse_comparison");
     OpType operation;
     Token tok;
     Expression *left = parse_term(parser);
@@ -500,6 +507,7 @@ Expression *parse_comparison(Parser *parser)
 
 Expression *parse_equality(Parser *parser)
 {
+    puts("parse_equality");
     OpType operation;
     Token tok;
     Expression *left = parse_comparison(parser);
@@ -558,6 +566,7 @@ Expression *parse_equality(Parser *parser)
 
 Expression *parse_conditions(Parser *parser)
 {
+    puts("parse_conditions");
     OpType operation;
     Token tok;
     Expression *left = parse_equality(parser);
@@ -626,6 +635,7 @@ Expression *parse_expr(Parser *parser)
 
 Statement *parse_var_decl(Parser *parser)
 {
+    puts("parse_var_decl");
     Token tok = parser_peek_curr(parser);
     char *lexeme = NULL;
     Statement *var_decl = NULL;
@@ -694,6 +704,7 @@ Statement *parse_var_decl(Parser *parser)
 
 Statement *parse_otherwise_stmt(Parser *parser)
 {
+    puts("parse_otherwise_stmt");
     Token tok = parser_peek_curr(parser);
     char *lexeme = NULL;
     Statement *block_stmt = NULL;
@@ -728,6 +739,7 @@ Statement *parse_otherwise_stmt(Parser *parser)
 
 Statement *parse_if_stmt(Parser *parser)
 {
+    puts("parse_if_stmt");
     Token tok = parser_peek_curr(parser);
     char *lexeme = NULL;
     Statement *if_stmt = NULL;
@@ -787,6 +799,7 @@ Statement *parse_if_stmt(Parser *parser)
 
 Statement *parse_while_stmt(Parser *parser)
 {
+    puts("parse_while_stmt");
     Token tok = parser_peek_curr(parser);
     char *lexeme = NULL;
     Statement *while_stmt = NULL;
@@ -832,6 +845,7 @@ Statement *parse_while_stmt(Parser *parser)
 
 Statement *parse_return_stmt(Parser *parser)
 {
+    puts("parse_return_stmt");
     Token tok = parser_peek_curr(parser);
     char *lexeme = parser_stringify_token(parser, &tok);
     Expression *result_expr = NULL;
@@ -867,6 +881,7 @@ Statement *parse_return_stmt(Parser *parser)
 
 Statement *parse_block_stmt(Parser *parser)
 {
+    puts("parse_block_stmt");
     Token checked_tok;
     char *lexeme = NULL;
     Statement *temp_stmt = NULL;
@@ -911,6 +926,7 @@ Statement *parse_block_stmt(Parser *parser)
 
 Statement *parse_func_stmt(Parser *parser)
 {
+    puts("parse_func_stmt");
     int bad_syntax = 0;
     int comma_expected = 0;
     Token tok;
@@ -1011,6 +1027,7 @@ Statement *parse_func_stmt(Parser *parser)
 
 Statement *parse_module_stmt(Parser *parser)
 {
+    puts("parse_module_stmt");
     Token tok = parser_peek_curr(parser);
     char *lexeme = parser_stringify_token(parser, &tok);
     Statement *use_stmt = NULL;
@@ -1038,6 +1055,7 @@ Statement *parse_module_stmt(Parser *parser)
 
 Statement *parse_use_stmt(Parser *parser)
 {
+    puts("parse_use_stmt");
     Token tok = parser_peek_curr(parser);
     char *lexeme = parser_stringify_token(parser, &tok);
     Statement *use_stmt = NULL;
@@ -1065,6 +1083,7 @@ Statement *parse_use_stmt(Parser *parser)
 
 Statement *parse_expr_stmt(Parser *parser)
 {
+    puts("parse_expr_stmt");
     Expression *inner_expr = parse_expr(parser);
 
     if (!inner_expr)
@@ -1075,7 +1094,7 @@ Statement *parse_expr_stmt(Parser *parser)
 
 Statement *parse_stmt(Parser *parser)
 {
-    Token tok = parser_peek_back(parser);
+    Token tok = parser_peek_curr(parser);
     char *lexeme = parser_stringify_token(parser, &tok);
     Statement *stmt = NULL;
 
@@ -1106,10 +1125,10 @@ Script *parser_parse_all(Parser *parser, const char *script_name)
     init_script(program, script_name, 4);
     Statement *temp = NULL;
 
-    while(!done_flag)
+    while (!done_flag)
     {
         temp = parse_stmt(parser);
-        done_flag = parser_at_end(parser);
+        done_flag = parser_at_end(parser) == 1;
 
         if (!temp && !done_flag)
         {
