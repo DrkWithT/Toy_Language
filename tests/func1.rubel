@@ -14,7 +14,7 @@ proc findNum(numbers, num)
             return i
         end
 
-        i = i + 1
+        set i = i + 1
     end
 
     return -1

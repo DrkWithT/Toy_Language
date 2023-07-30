@@ -7,7 +7,7 @@ proc countTen()
 
     while (n > 0)
         println(n)
-        n = n - 1
+        set n = n - 1
     end
 
     return n
