@@ -49,5 +49,6 @@ $(EXE): $(OBJS)
 $(BUILD_DIR)/%.o: %.c
 	$(CC) $(CFLAGS) -c $< -I$(HEADER_DIR) -o $@
 
+# clean rule: only remove old executables!
 clean:
-	rm -f $(EXE) $(BUILD_DIR)/*.o
+	rm -f $(EXE)
