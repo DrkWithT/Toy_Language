@@ -367,7 +367,7 @@ Expression *parse_unary(Parser *parser)
     }
     else if (tok.type == IDENTIFIER)
     {
-        // NOTE: parse a function call expression here... var uses also handled here!
+        // NOTE: parse a function call expression here... var uses/mutations also handled here!
         expr = parse_call(parser);
     }
     else
@@ -772,49 +772,53 @@ Statement *parse_var_assign(Parser *parser)
     // NOTE: assignments are considered statements since they cause side effects.
     puts("parse_assign_stmt");
     Token tok = parser_peek_curr(parser);
-    char start_symbol = '\0';
-    char *lexeme = NULL;
+    char *lexeme = parser_stringify_token(parser, &tok);
     Statement *assign_stmt = NULL;
     Expression *rvalue = NULL;
 
-    // check for var name
-    if (tok.type != IDENTIFIER)
+    // validate keyword "set" to enforce syntax
+    if (tok.type != KEYWORD || (tok.type == KEYWORD && strncmp(lexeme, "set", 3) != 0))
     {
-        parser_log_err(parser, tok.line, "Expected identifier for assignment.");
+        free(lexeme);
         return assign_stmt;
     }
 
-    // prepare assignment syntax node, but reject incomplete allocations
-    lexeme = parser_stringify_token(parser, &tok);
+    free(lexeme);
 
-    if (!lexeme) return assign_stmt;
-
-    assign_stmt = create_var_assign(lexeme, NULL);
-    lexeme = NULL;  // NOTE: assignment node should "own" the old lexeme data!
-
-    if (!assign_stmt) return assign_stmt;
-
-    // validate next symbol as '=' operator to enforce assignment syntax
+    // consume and validate possible identifier
     parser_advance(parser);
     tok = parser_peek_curr(parser);
-    start_symbol = parser->src_copy_ptr[tok.begin];
 
-    if (tok.type != OPERATOR || (tok.type == OPERATOR && start_symbol != '=')) return assign_stmt;
+    if (tok.type != IDENTIFIER) return assign_stmt;
 
-    // parse right side of statement
+    // prepare assignment syntax node
+    lexeme = parser_stringify_token(parser, &tok);
+    assign_stmt = create_var_assign(lexeme, NULL);
+    lexeme = NULL;
+
+    // consume and validate possible '='
     parser_advance(parser);
+    tok = parser_peek_curr(parser);
 
+    if (tok.type != OPERATOR || (tok.type == OPERATOR && parser->src_copy_ptr[tok.begin] != '='))
+    {
+        destroy_stmt(assign_stmt);
+        free(assign_stmt);
+        return NULL;
+    }
+
+    // parse assignment expr
+    parser_advance(parser);
     rvalue = parse_expr(parser);
 
-    // reject prepared assign node if expr parse fails since an invalid node cannot be walked well
+    // reject prepared assign node if expr parse fails since an invalid node cannot be evaluated anyways
     if (!rvalue)
     {
         destroy_expr(rvalue);
         free(rvalue);
         destroy_stmt(assign_stmt);
         free(assign_stmt);
-        assign_stmt = NULL;
-        return assign_stmt;
+        return NULL;
     }
 
     assign_stmt->syntax.var_assign.rvalue = rvalue;
@@ -831,10 +835,7 @@ Statement *parse_otherwise_stmt(Parser *parser)
     Statement *otherwise_stmt = NULL;
 
     // check for "otherwise" keyword to validate stmt
-    if (tok.type != KEYWORD)
-    {
-        return otherwise_stmt;
-    }
+    if (tok.type != KEYWORD) return otherwise_stmt;
 
     lexeme = parser_stringify_token(parser, &tok);
 
@@ -847,14 +848,14 @@ Statement *parse_otherwise_stmt(Parser *parser)
 
     free(lexeme);
 
+    // advance to otherwise body!
+    parser_advance(parser);
+
     // continue parsing otherwise block stmt
     block_stmt = parse_block_stmt(parser);
 
     // reject failed parses of otherwise blocks!
-    if (!block_stmt)
-    {
-        return otherwise_stmt;
-    }
+    if (!block_stmt) return otherwise_stmt;
 
     otherwise_stmt = create_otherwise_stmt(block_stmt);
 
@@ -870,10 +871,7 @@ Statement *parse_if_stmt(Parser *parser)
     Statement *first_block = NULL;
 
     // check for starting keyword "if" to validate stmt
-    if (tok.type != KEYWORD)
-    {
-        return if_stmt;
-    }
+    if (tok.type != KEYWORD) return if_stmt;
 
     lexeme = parser_stringify_token(parser, &tok);
     
@@ -1028,9 +1026,14 @@ Statement *parse_block_stmt(Parser *parser)
         {
             temp_stmt = parse_if_stmt(parser);
         }
+        else if (strncmp(lexeme, "otherwise", 9) == 0)
+        {
+            free(lexeme);  // NOTE: discard "otherwise" token AND do not advance in this case... "otherwise" starts a stmt!
+            break;
+        }
         else if (strncmp(lexeme, "end", 3) == 0)
         {
-            free(lexeme); // discard "end" token as it's just a block marker
+            free(lexeme); // NOTE; discard "end" token as it's a block end mark
             parser_advance(parser);
             break;
         }
@@ -1041,6 +1044,10 @@ Statement *parse_block_stmt(Parser *parser)
         else if (strncmp(lexeme, "let", 3) == 0 || strncmp(lexeme, "const", 5) == 0)
         {
             temp_stmt = parse_var_decl(parser);
+        }
+        else if (strncmp(lexeme, "set", 3) == 0)
+        {
+            temp_stmt = parse_var_assign(parser);
         }
         else
         {
@@ -1243,6 +1250,7 @@ Statement *parse_stmt(Parser *parser)
     else if (strncmp(lexeme, "module", 6) == 0) stmt = parse_module_stmt(parser);
     else if (strncmp(lexeme, "proc", 4) == 0) stmt = parse_func_stmt(parser);
     else if (strncmp(lexeme, "let", 3) == 0 || strncmp(lexeme, "const", 5) == 0) stmt = parse_var_decl(parser);
+    else if (strncmp(lexeme, "set", 3) == 0) stmt = parse_var_assign(parser);
     else;
 
     free(lexeme);

@@ -269,6 +269,7 @@ Token lexer_next_token(Lexer *lexer)
     else if (MATCH_CHAR(c, 'u')) return lexer_lex_keyword(lexer, "use");
     else if (MATCH_CHAR(c, 'l')) return lexer_lex_keyword(lexer, "let");
     else if (MATCH_CHAR(c, 'c')) return lexer_lex_keyword(lexer, "const");
+    else if (MATCH_CHAR(c, 's')) return lexer_lex_keyword(lexer, "set");
     else if (MATCH_CHAR(c, 'p')) return lexer_lex_keyword(lexer, "proc");
     else if (MATCH_CHAR(c, 'i')) return lexer_lex_keyword(lexer, "if");
     else if (MATCH_CHAR(c, 'o')) return lexer_lex_keyword(lexer, "otherwise");
