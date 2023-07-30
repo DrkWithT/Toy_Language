@@ -10,21 +10,6 @@
 #include <stdlib.h>
 #include "backend/values/vartypes.h"
 
-typedef enum en_stmt_type
-{
-    MODULE_DEF,
-    MODULE_USE,
-    EXPR_STMT,
-    VAR_DECL,
-    BLOCK_STMT,
-    FUNC_DECL,
-    WHILE_STMT,
-    IF_STMT,
-    OTHERWISE_STMT,
-    BREAK_STMT,
-    RETURN_STMT
-} StatementType;
-
 typedef enum en_optype
 {
     OP_AND,
@@ -55,6 +40,22 @@ typedef enum en_expr_type
     UNARY_OP,
     BINARY_OP
 } ExpressionType;
+
+typedef enum en_stmt_type
+{
+    MODULE_DEF,
+    MODULE_USE,
+    EXPR_STMT,
+    VAR_DECL,
+    VAR_ASSIGN,
+    BLOCK_STMT,
+    FUNC_DECL,
+    WHILE_STMT,
+    IF_STMT,
+    OTHERWISE_STMT,
+    BREAK_STMT,
+    RETURN_STMT
+} StatementType;
 
 typedef struct st_expression
 {
@@ -184,6 +185,12 @@ typedef struct st_statement
 
         struct
         {
+            char *var_name;
+            struct st_expression *rvalue;
+        } var_assign;
+
+        struct
+        {
             char *func_name;
             unsigned int cap;
             unsigned int argc;
@@ -243,6 +250,8 @@ Statement *create_module_def(char *name);
 Statement *create_module_usage(char *name);
 
 Statement *create_var_decl(int is_const, char *var_name, Expression *rvalue);
+
+Statement *create_var_assign(char *var_name, Expression *rvalue);
 
 Statement *create_func_stmt(char *fn_name, Statement *block);
 

@@ -399,6 +399,20 @@ Statement *create_var_decl(int is_const, char *var_name, Expression *rvalue)
     return stmt;
 }
 
+Statement *create_var_assign(char *var_name, Expression *rvalue)
+{
+    Statement *stmt = malloc(sizeof(Statement));
+
+    if (stmt != NULL)
+    {
+        stmt->type = VAR_ASSIGN;
+        stmt->syntax.var_assign.var_name = var_name;
+        stmt->syntax.var_assign.rvalue = rvalue;
+    }
+
+    return stmt;
+}
+
 Statement *create_func_stmt(char *fn_name, Statement *block)
 {
     Statement *stmt = malloc(sizeof(Statement));
@@ -572,7 +586,20 @@ void destroy_stmt(Statement *stmt)
     else if (stmt->type == FUNC_DECL)
     {
         clear_block_stmt(stmt->syntax.func_decl.stmts);
+        free(stmt->syntax.func_decl.func_name);
         stmt->syntax.func_decl.func_name = NULL;
+    }
+    else if (stmt->type == VAR_DECL)
+    {
+        destroy_expr(stmt->syntax.var_decl.rvalue);
+        free(stmt->syntax.var_decl.var_name);
+        stmt->syntax.var_decl.var_name = NULL;
+    }
+    else if (stmt->type == VAR_ASSIGN)
+    {
+        destroy_expr(stmt->syntax.var_assign.rvalue);
+        free(stmt->syntax.var_assign.var_name);
+        stmt->syntax.var_assign.var_name = NULL;
     }
     else if (stmt->type == WHILE_STMT)
     {
