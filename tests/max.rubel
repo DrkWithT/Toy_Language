@@ -1,0 +1,14 @@
+# find max of pair
+
+use io
+
+proc maxOfPair(a, b)
+    if (a >= b)
+        return a
+    otherwise
+        return b
+    end
+end
+
+print("max of 2, 3 is ")
+print(maxOfPair(2, 3))

@@ -1,0 +1,16 @@
+# count to 10
+
+use io
+
+proc countTen()
+    let n = 10
+
+    while (n > 0)
+        println(n)
+        n = n - 1
+    end
+
+    return n
+end
+
+countTen()
