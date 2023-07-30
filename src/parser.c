@@ -89,8 +89,7 @@ Expression *parse_primitive(Parser *parser)
     char *lexeme = parser_stringify_token(parser, &token);
     Expression *expr = NULL;
 
-    if (!lexeme)
-        return expr;
+    if (!lexeme) return expr;
 
     switch (token.type)
     {
@@ -143,8 +142,7 @@ Expression *parse_list(Parser *parser)
 
     ListObj *list_val = create_list_obj();
 
-    if (!list_val)
-        return expr;
+    if (!list_val) return expr;
 
     // consume 1st literal and so on...
     while (!parser_at_end(parser))
@@ -323,8 +321,7 @@ Expression *parse_call(Parser *parser)
     {
         tok = parser_peek_curr(parser);
 
-        if (tok.type == RPAREN)
-            break;
+        if (tok.type == RPAREN) break;
 
         if (tok.type == COMMA && !expect_comma)
         {
@@ -333,9 +330,13 @@ Expression *parse_call(Parser *parser)
         }
 
         if (tok.type != COMMA)
+        {
             add_arg_call(expr, parse_expr(parser));
+        }
         else
+        {
             parser_advance(parser); // NOTE: don't advance twice on non-comma tokens!
+        }
 
         expect_comma ^= 1;
     }
@@ -395,8 +396,7 @@ Expression *parse_factor(Parser *parser)
     {
         tok = parser_peek_curr(parser);
 
-        if (tok.type != OPERATOR && !valid_oper)
-            return expr;
+        if (tok.type != OPERATOR && !valid_oper) return expr;
 
         char operator_symbol = parser->src_copy_ptr[tok.begin];
 
@@ -446,8 +446,7 @@ Expression *parse_term(Parser *parser)
     {
         tok = parser_peek_curr(parser);
 
-        if (tok.type != OPERATOR && !valid_oper)
-            return expr;
+        if (tok.type != OPERATOR && !valid_oper) return expr;
 
         char operator_symbol = parser->src_copy_ptr[tok.begin];
 
@@ -496,30 +495,31 @@ Expression *parse_comparison(Parser *parser)
     {
         tok = parser_peek_curr(parser);
 
-        if (tok.type != OPERATOR && !valid_oper)
-            return expr;
+        if (tok.type != OPERATOR && !valid_oper) return expr;
 
         char *lexeme = parser_stringify_token(parser, &tok);
 
-        if (strncmp(lexeme, ">=", 2) == 0)
+        printf("parse_comparison: lexeme \"%s\"\n", lexeme);
+
+        if (tok.type == OPERATOR && strncmp(lexeme, ">=", 2) == 0)
         {
             operation = OP_GTE;
             valid_oper = 1;
             parser_advance(parser);
         }
-        else if (strncmp(lexeme, "<=", 2) == 0)
+        else if (tok.type == OPERATOR && strncmp(lexeme, "<=", 2) == 0)
         {
             operation = OP_LTE;
             valid_oper = 1;
             parser_advance(parser);
         }
-        else if (lexeme[0] == '>' && lexeme[1] == '\0')
+        else if (tok.type == OPERATOR && strncmp(lexeme, ">", 1) == 0)
         {
             operation = OP_GT;
             valid_oper = 1;
             parser_advance(parser);
         }
-        else if (lexeme[0] == '<' && lexeme[1] == '\0')
+        else if (tok.type == OPERATOR && strncmp(lexeme, "<", 1) == 0)
         {
             operation = OP_LT;
             valid_oper = 1;
@@ -531,6 +531,7 @@ Expression *parse_comparison(Parser *parser)
             right = parse_term(parser);
             temp = create_binary(operation, expr, right);
             expr = temp;
+            valid_oper = 0;
         }
         else if (tok.type == OPERATOR)
         {
@@ -576,8 +577,7 @@ Expression *parse_equality(Parser *parser)
     {
         tok = parser_peek_curr(parser);
 
-        if (tok.type != OPERATOR && !valid_oper)
-            return expr;
+        if (tok.type != OPERATOR && !valid_oper) return expr;
 
         char *lexeme = parser_stringify_token(parser, &tok);
 
@@ -595,9 +595,11 @@ Expression *parse_equality(Parser *parser)
         }
         else if (valid_oper)
         {
+            puts("making comparison expr");
             right = parse_comparison(parser);
             temp = create_binary(operation, expr, right);
             expr = temp;
+            valid_oper = 0;
         }
         else if (tok.type == OPERATOR)
         {
@@ -689,8 +691,7 @@ Expression *parse_equality(Parser *parser)
 
 Expression *parse_expr(Parser *parser)
 {
-    if (!parser_at_end(parser))
-        return parse_equality(parser);
+    if (!parser_at_end(parser)) return parse_equality(parser);
 
     return NULL;
 }
@@ -766,6 +767,61 @@ Statement *parse_var_decl(Parser *parser)
     return var_decl;
 }
 
+Statement *parse_var_assign(Parser *parser)
+{
+    // NOTE: assignments are considered statements since they cause side effects.
+    puts("parse_assign_stmt");
+    Token tok = parser_peek_curr(parser);
+    char start_symbol = '\0';
+    char *lexeme = NULL;
+    Statement *assign_stmt = NULL;
+    Expression *rvalue = NULL;
+
+    // check for var name
+    if (tok.type != IDENTIFIER)
+    {
+        parser_log_err(parser, tok.line, "Expected identifier for assignment.");
+        return assign_stmt;
+    }
+
+    // prepare assignment syntax node, but reject incomplete allocations
+    lexeme = parser_stringify_token(parser, &tok);
+
+    if (!lexeme) return assign_stmt;
+
+    assign_stmt = create_var_assign(lexeme, NULL);
+    lexeme = NULL;  // NOTE: assignment node should "own" the old lexeme data!
+
+    if (!assign_stmt) return assign_stmt;
+
+    // validate next symbol as '=' operator to enforce assignment syntax
+    parser_advance(parser);
+    tok = parser_peek_curr(parser);
+    start_symbol = parser->src_copy_ptr[tok.begin];
+
+    if (tok.type != OPERATOR || (tok.type == OPERATOR && start_symbol != '=')) return assign_stmt;
+
+    // parse right side of statement
+    parser_advance(parser);
+
+    rvalue = parse_expr(parser);
+
+    // reject prepared assign node if expr parse fails since an invalid node cannot be walked well
+    if (!rvalue)
+    {
+        destroy_expr(rvalue);
+        free(rvalue);
+        destroy_stmt(assign_stmt);
+        free(assign_stmt);
+        assign_stmt = NULL;
+        return assign_stmt;
+    }
+
+    assign_stmt->syntax.var_assign.rvalue = rvalue;
+
+    return assign_stmt;
+}
+
 Statement *parse_otherwise_stmt(Parser *parser)
 {
     puts("parse_otherwise_stmt");
@@ -776,7 +832,9 @@ Statement *parse_otherwise_stmt(Parser *parser)
 
     // check for "otherwise" keyword to validate stmt
     if (tok.type != KEYWORD)
+    {
         return otherwise_stmt;
+    }
 
     lexeme = parser_stringify_token(parser, &tok);
 
@@ -794,7 +852,9 @@ Statement *parse_otherwise_stmt(Parser *parser)
 
     // reject failed parses of otherwise blocks!
     if (!block_stmt)
+    {
         return otherwise_stmt;
+    }
 
     otherwise_stmt = create_otherwise_stmt(block_stmt);
 
@@ -811,7 +871,9 @@ Statement *parse_if_stmt(Parser *parser)
 
     // check for starting keyword "if" to validate stmt
     if (tok.type != KEYWORD)
+    {
         return if_stmt;
+    }
 
     lexeme = parser_stringify_token(parser, &tok);
     
@@ -856,7 +918,7 @@ Statement *parse_if_stmt(Parser *parser)
     }
 
     if_stmt->syntax.if_stmt.first = first_block;
-    if_stmt->syntax.if_stmt.other = parse_otherwise_stmt(parser);;
+    if_stmt->syntax.if_stmt.other = parse_otherwise_stmt(parser);
 
     return if_stmt;
 }
@@ -871,7 +933,9 @@ Statement *parse_while_stmt(Parser *parser)
 
     // validate starting keyword token
     if (tok.type != KEYWORD)
+    {
         return while_stmt;
+    }
     
     lexeme = parser_stringify_token(parser, &tok);
     
@@ -957,9 +1021,13 @@ Statement *parse_block_stmt(Parser *parser)
         printf("parsing stmt with begin: \"%s\"\n", lexeme);
 
         if (strncmp(lexeme, "while", 5) == 0)
+        {
             temp_stmt = parse_while_stmt(parser);
+        }
         else if (strncmp(lexeme, "if", 2) == 0)
+        {
             temp_stmt = parse_if_stmt(parser);
+        }
         else if (strncmp(lexeme, "end", 3) == 0)
         {
             free(lexeme); // discard "end" token as it's just a block marker
@@ -967,11 +1035,17 @@ Statement *parse_block_stmt(Parser *parser)
             break;
         }
         else if (strncmp(lexeme, "return", 6) == 0)
+        {
             temp_stmt = parse_return_stmt(parser);
+        }
         else if (strncmp(lexeme, "let", 3) == 0 || strncmp(lexeme, "const", 5) == 0)
+        {
             temp_stmt = parse_var_decl(parser);
+        }
         else
+        {
             temp_stmt = parse_expr_stmt(parser);
+        }
 
         free(lexeme);
 
@@ -1000,10 +1074,8 @@ Statement *parse_func_stmt(Parser *parser)
     Statement *fn_stmt = NULL;
 
     // check starting keyword "proc"
-    if (tok.type != KEYWORD)
-        return fn_stmt;
+    if (tok.type != KEYWORD) return fn_stmt;
 
-    puts("parse func begin");
     lexeme = parser_stringify_token(parser, &tok);
 
     if (strncmp(lexeme, "proc", 4) != 0)
@@ -1024,12 +1096,10 @@ Statement *parse_func_stmt(Parser *parser)
     parser_advance(parser);
     tok = parser_peek_curr(parser);
 
-    if (tok.span != 1 && parser->src_copy_ptr[tok.begin] != '(')
-        return fn_stmt;
+    if (tok.span != 1 && parser->src_copy_ptr[tok.begin] != '(') return fn_stmt;
 
     parser_advance(parser);
 
-    puts("parsing func args");
     while (!parser_at_end(parser))
     {
         tok = parser_peek_curr(parser);
@@ -1156,8 +1226,7 @@ Statement *parse_expr_stmt(Parser *parser)
     puts("parse_expr_stmt");
     Expression *inner_expr = parse_expr(parser);
 
-    if (!inner_expr)
-        return NULL;
+    if (!inner_expr) return NULL;
 
     puts("finished expr stmt");
     return create_expr_stmt(inner_expr);
@@ -1169,16 +1238,11 @@ Statement *parse_stmt(Parser *parser)
     char *lexeme = parser_stringify_token(parser, &tok);
     Statement *stmt = NULL;
 
-    if (tok.type == IDENTIFIER)
-        stmt = parse_expr_stmt(parser);
-    else if (strncmp(lexeme, "use", 3) == 0)
-        stmt = parse_use_stmt(parser);
-    else if (strncmp(lexeme, "module", 6) == 0)
-        stmt = parse_module_stmt(parser);
-    else if (strncmp(lexeme, "proc", 4) == 0)
-        stmt = parse_func_stmt(parser);
-    else if (strncmp(lexeme, "let", 3) == 0 || strncmp(lexeme, "const", 5) == 0)
-        stmt = parse_var_decl(parser);
+    if (tok.type == IDENTIFIER) stmt = parse_expr_stmt(parser);
+    else if (strncmp(lexeme, "use", 3) == 0) stmt = parse_use_stmt(parser);
+    else if (strncmp(lexeme, "module", 6) == 0) stmt = parse_module_stmt(parser);
+    else if (strncmp(lexeme, "proc", 4) == 0) stmt = parse_func_stmt(parser);
+    else if (strncmp(lexeme, "let", 3) == 0 || strncmp(lexeme, "const", 5) == 0) stmt = parse_var_decl(parser);
     else;
 
     free(lexeme);
@@ -1189,7 +1253,9 @@ Statement *parse_stmt(Parser *parser)
 Script *parser_parse_all(Parser *parser, const char *script_name)
 {
     if (!parser->ready_flag)
+    {
         return NULL;
+    }
 
     int done_flag = 0;
     Script *program = malloc(sizeof(Script));

@@ -56,6 +56,8 @@ Expression *parse_expr(Parser *parser);
 
 Statement *parse_var_decl(Parser *parser);
 
+Statement *parse_var_assign(Parser *parser);
+
 Statement *parse_if_stmt(Parser *parser);
 
 Statement *parse_otherwise_stmt(Parser *parser);
