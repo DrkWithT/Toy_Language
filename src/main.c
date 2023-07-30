@@ -3,8 +3,9 @@
 /**
  * @file main.c 
  * @author Derek Tan
- * @brief Driver code for the parser with interpreter.
+ * @brief Driver code for the Rubel command line utility.
  * @date 2023-07-22
+ * @todo See README todos for tasks.
  */
 
 /// SECTION: Debug code
@@ -14,6 +15,7 @@ static const char *stmt_names[] = {
     "MODULE_USE",
     "EXPR_STMT",
     "VAR_DECL",
+    "VAR_ASSIGN",
     "BLOCK_STMT",
     "FUNC_DECL",
     "WHILE_STMT",
