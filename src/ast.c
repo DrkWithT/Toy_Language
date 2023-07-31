@@ -3,7 +3,7 @@
  * @author Derek Tan
  * @brief Implements AST structures and functions.
  * @date 2023-07-23
- * @todo Modify AST node destroy_xx functions when interpreter is done: the str_obj and list_obj properties must be unbound as they are managed by Scope objects.
+ * @todo Modify AST node destroy_xx functions when interpreter is done: the str_obj and list_obj properties must be unbound as they are managed by VarEnv or Scope objects.
  */
 
 #include "frontend/ast.h"
@@ -576,7 +576,7 @@ Statement *create_expr_stmt(Expression *expr)
     return stmt;
 }
 
-/// TODO: implement destroy_stmt!
+/// TODO: add extra checks for null ptrs.
 void destroy_stmt(Statement *stmt)
 {
     if (stmt->type == BLOCK_STMT)
