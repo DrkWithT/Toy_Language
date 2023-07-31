@@ -4,6 +4,7 @@
 #include "backend/values/vartypes.h"
 
 /// SECTION: Macros
+
 #define VAR_ENV_SIZE 8
 #define HASH_TABLE_PRIME 3
 
