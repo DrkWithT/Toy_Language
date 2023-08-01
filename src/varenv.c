@@ -137,21 +137,6 @@ int envbucklist_append(EnvBuckList *bucklist, EnvBuckListNode *node)
     return 1;
 }
 
-size_t hash_key(const char *key)
-{
-    size_t key_len = strlen(key);
-    size_t base = 1;
-    size_t hash_num = 0;
-
-    for (size_t i = 0; i < key_len; i++)
-    {
-        hash_num += base * key[i];
-        base *= HASH_TABLE_PRIME;
-    }
-
-    return hash_num;
-}
-
 /// SECTION: Variable Environment
 
 int varenv_init(VarEnv *venv, size_t buckets)

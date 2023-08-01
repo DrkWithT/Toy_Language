@@ -2,11 +2,11 @@
 #define VARENV_H
 
 #include "backend/values/vartypes.h"
+#include "utils/hashing.h"
 
 /// SECTION: Macros
 
 #define VAR_ENV_SIZE 8
-#define HASH_TABLE_PRIME 3
 
 /// SECTION: Variable
 
@@ -52,8 +52,6 @@ const EnvBuckListNode *envbucklist_fetch(const EnvBuckList *bucklist, const char
 int envbucklist_append(EnvBuckList *bucklist, EnvBuckListNode *node);
 
 /// SECTION: Variable Environment
-
-size_t hash_key(const char *key);
 
 typedef struct st_varenv
 {
