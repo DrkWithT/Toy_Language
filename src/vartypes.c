@@ -259,3 +259,43 @@ int append_list_obj(ListObj *list, VarValue *data)
 
     return 1;
 }
+
+// VarValue *pop_list_obj(ListObj *list)
+// {
+//     if (list->count == 0 || !list->head) return NULL;
+
+//     ListNodeObj *prev_ptr = list->head;
+//     ListNodeObj *target_ptr = list->head;
+
+//     while (target_ptr->next != NULL)
+//     {
+//         prev_ptr = target_ptr;
+//         target_ptr = target_ptr->next;
+//     }
+
+//     // remove last node
+//     prev_ptr->next = NULL;
+//     list->last = prev_ptr;
+//     list->count--;
+
+//     return target_ptr;
+// }
+
+VarValue *get_at_list_obj(const ListObj *list, size_t index)
+{
+    size_t countdown = index;
+
+    if (countdown >= list->count) return NULL;
+
+    ListNodeObj *temp_ptr = list->head;
+
+    while (temp_ptr->next != NULL)
+    {
+        if (countdown == 0) break;
+
+        temp_ptr = temp_ptr->next;
+        countdown--;
+    }
+
+    return temp_ptr;
+}

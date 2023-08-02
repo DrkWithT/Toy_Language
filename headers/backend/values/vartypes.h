@@ -101,6 +101,8 @@ void destroy_list_obj(ListObj *list);
 
 int append_list_obj(ListObj *list, VarValue *data);
 
-int pop_list_obj(ListObj *list);
+// VarValue *pop_list_obj(ListObj *list);
+
+VarValue *get_at_list_obj(const ListObj *list, size_t index);
 
 #endif
