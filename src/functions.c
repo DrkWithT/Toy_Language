@@ -51,9 +51,9 @@ void funcargs_destroy(FuncArgs *args)
     args->argv_dupe_refs = NULL;
 }
 
-int funcargs_put(FuncArgs *args, VarValue *arg_obj)
+int funcargs_put(FuncArgs *args, Variable *var_arg_obj)
 {
-    if (!arg_obj || args->capacity == 0) return 0;
+    if (!var_arg_obj || args->capacity == 0) return 0;
 
     size_t next_spot = args->count;
     size_t curr_capacity = args->capacity;
@@ -61,7 +61,7 @@ int funcargs_put(FuncArgs *args, VarValue *arg_obj)
 
     if (next_spot <= curr_capacity - 1)
     {
-        args->argv_dupe_refs[next_spot] = arg_obj;
+        args->argv_dupe_refs[next_spot] = var_arg_obj;
         args->count++;
         return 1;
     }
@@ -75,7 +75,7 @@ int funcargs_put(FuncArgs *args, VarValue *arg_obj)
         temp_argv[i] = NULL;
     }
 
-    temp_argv[next_spot] = arg_obj;
+    temp_argv[next_spot] = var_arg_obj;
     args->argv_dupe_refs = temp_argv;
     args->capacity = new_capacity;
     args->count++;
@@ -83,7 +83,7 @@ int funcargs_put(FuncArgs *args, VarValue *arg_obj)
     return 1;
 }
 
-VarValue *funcargs_get(FuncArgs *args, unsigned short index)
+Variable *funcargs_get(FuncArgs *args, unsigned short index)
 {
     if (index >= args->count) return NULL;
 

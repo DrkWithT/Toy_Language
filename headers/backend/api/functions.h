@@ -36,9 +36,9 @@ void funcargs_init(FuncArgs *args, unsigned short capacity);
  */
 void funcargs_destroy(FuncArgs *args);
 
-int funcargs_put(FuncArgs *args, VarValue *arg_obj);
+int funcargs_put(FuncArgs *args, Variable *var_arg_obj);
 
-VarValue *funcargs_get(FuncArgs *args, unsigned short index);
+Variable *funcargs_get(FuncArgs *args, unsigned short index);
 
 /// SECTION: Function Decl.
 
