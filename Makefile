@@ -31,7 +31,7 @@ vpath %.c $(SRC_DIR)
 
 # utility rule: show SLOC
 sloc:
-	@wc -l headers/**/*.h src/*.c
+	@wc -l headers/**/*.h headers/**/**/*.h src/*.c
 
 # debug rule: show all targets and deps
 tell:

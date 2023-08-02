@@ -22,7 +22,7 @@ This will be a toy language interpreter using the tree walk approach on a genera
 ### Keywords of Rubel
  - `use`: Includes a module into a script. Specifically, the names of other procedures and constants become visible.
  - `let`: Declares a mutable variable.
- - `const`: Declares a _deeply_ immutable variable. Lists will not be mutable either as `const`!
+ - `const`: Declares a _deeply_ immutable variable. Lists will be immutable _for now_!
  - `set`: Tells Rubel that we're reassigning a variable. Fails on `const` valued variables during runtime!
  - `proc`: Declares a procedure.
  - `if`: Executes a block of statements if its conditional is true.
@@ -36,6 +36,8 @@ This will be a toy language interpreter using the tree walk approach on a genera
 
 ### TODO:
  1. ~~Make parser and `vartypes.h` structures.~~
- 2. Make interpreter: create scopes as HashTable using bucket lists and evaluator as visitor pattern on AST.
+ 2. Make interpreter: ~~create scopes as HashTable using bucket lists~~, native function API, and evaluator as visitor pattern on AST.
+   - When done with variable scopes and interpreter, replace deallocation code within `expr/stmt_destroy` of `ast.c`!
+   - Order of cleanup: destroy AST, destroy interpreter scopes. Source string must be freed after parsing!
  3. Test sample scripts!
  4. Add parentheses grouping later... Add parse logic in `parse_literal` for `(EXPR)` case.
