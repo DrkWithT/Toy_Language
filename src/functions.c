@@ -139,6 +139,7 @@ FuncGroup *funcgroup_create(char *name, unsigned int buckets)
         fn_group->fn_buckets = NULL;
         fn_group->count = 0;
         fn_group->name = name;
+        fn_group->used = 0;
         return fn_group;
     }
 
@@ -172,6 +173,16 @@ void funcgroup_dispose(FuncGroup *fn_group)
         free(fn_group->fn_buckets);
         fn_group->fn_buckets = NULL;
     }
+}
+
+void funcgroup_mark_used(FuncGroup *fn_group, int flag)
+{
+    fn_group->used = (flag == 1);
+}
+
+int funcgroup_is_used(const FuncGroup *fn_group)
+{
+    return fn_group->used;
 }
 
 int funcgroup_put(FuncGroup *fn_group, FuncObj *fn_obj)

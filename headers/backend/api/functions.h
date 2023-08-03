@@ -2,7 +2,7 @@
 #define FUNCTIONS_H
 
 #include "frontend/ast.h"
-#include "backend/values/scope.h"
+#include "backend/values/varenv.h"
 
 /// SECTION: Macros
 
@@ -44,6 +44,7 @@ Variable *funcargs_get(FuncArgs *args, unsigned short index);
 
 /**
  * @brief Function object managed by interpreter. Memory in ptrs is usually unbound before freeing of the structure.
+ * @note Don't free content ptrs as Script manages AST ptrs. and func ptrs. are static!
  */
 typedef struct st_function
 {
@@ -61,8 +62,6 @@ FuncObj *func_native_create(char *name, int arity, NativeFunc *fn_ptr);
 
 FuncObj *func_ast_create(char *name, int arity, Statement *fn_ast);
 
-// VarValue *func_call(const FuncObj *func, FuncArgs *argv, RubelScope *var_scope, struct st_func_env *fn_scope); // TODO: move to interpreter.h!
-
 /// SECTION: Function Storage
 
 /**
@@ -70,6 +69,7 @@ FuncObj *func_ast_create(char *name, int arity, Statement *fn_ast);
  */
 typedef struct st_func_group
 {
+    int used;
     char *name;
     unsigned int count;
     FuncObj **fn_buckets;
@@ -79,9 +79,13 @@ FuncGroup *funcgroup_create(char *name, unsigned int buckets);
 
 /**
  * @brief Frees internal memory within this function dictionary. FuncObj has its names and contents unbound before freeing. Finally the outer bucket array is freed.
- * @param fn_group 
+ * @param fn_group
  */
 void funcgroup_dispose(FuncGroup *fn_group);
+
+void funcgroup_mark_used(FuncGroup *fn_group, int flag);
+
+int funcgroup_is_used(const FuncGroup *fn_group);
 
 int funcgroup_put(FuncGroup *fn_group, FuncObj *fn_obj);
 
