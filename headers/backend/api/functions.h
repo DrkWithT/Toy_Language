@@ -34,6 +34,12 @@ void funcargs_init(FuncArgs *args, unsigned short capacity);
  * @brief Unbinds referencing ptrs to arg values before freeing the ptr array.
  * @param args 
  */
+void funcargs_dispose(FuncArgs *args);
+
+/**
+ * @brief Frees dynamic memory within the arg ptr array. Use only for func calls with copied arguments from a fn_call expression.
+ * @param args 
+ */
 void funcargs_destroy(FuncArgs *args);
 
 int funcargs_put(FuncArgs *args, Variable *var_arg_obj);

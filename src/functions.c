@@ -36,7 +36,7 @@ void funcargs_init(FuncArgs *args, unsigned short capacity)
     args->count = 0;
 }
 
-void funcargs_destroy(FuncArgs *args)
+void funcargs_dispose(FuncArgs *args)
 {
     if (args->capacity == 0) return;
 
@@ -45,6 +45,22 @@ void funcargs_destroy(FuncArgs *args)
     for (size_t i = 0; i < argc; i++)
     {
         args->argv_dupe_refs[i] = NULL; // unbind arg value object managed by AST
+    }
+
+    free(args->argv_dupe_refs);
+    args->argv_dupe_refs = NULL;
+}
+
+void funcargs_destroy(FuncArgs *args)
+{
+    if (args->capacity == 0) return;
+
+    size_t argc = args->count;
+
+    for (size_t i = 0; i < argc; i++)
+    {
+        variable_destroy(args->argv_dupe_refs[i]);
+        free(args->argv_dupe_refs[i]);
     }
 
     free(args->argv_dupe_refs);
