@@ -79,6 +79,25 @@ VarValue *create_list_varval(int is_const, struct st_list_obj *value)
     return strval;
 }
 
+void varval_destroy(VarValue *value)
+{
+    switch (value->type)
+    {
+    case STR_TYPE:
+        destroy_str_obj(value->data.str_type.value);
+        free(value->data.str_type.value);
+        value->data.str_type.value = NULL;
+        break;
+    case LIST_TYPE:
+        destroy_list_obj(value->data.list_type.value);
+        free(value->data.list_type.value);
+        value->data.list_type.value = NULL;
+        break;
+    default:
+        break;
+    }
+}
+
 DataType varval_get_type(const VarValue *variable)
 {
     return variable->type;

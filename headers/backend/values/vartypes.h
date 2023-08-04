@@ -60,6 +60,8 @@ VarValue *create_str_varval(int is_const, struct st_str_obj *value);
 
 VarValue *create_list_varval(int is_const, struct st_list_obj *value);
 
+void varval_destroy(VarValue *value);
+
 DataType varval_get_type(const VarValue *variable);
 
 int varval_is_const(const VarValue *variable);
