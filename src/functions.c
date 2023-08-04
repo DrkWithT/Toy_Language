@@ -9,18 +9,103 @@
 
 /// SECTION: Args Impl.
 
-void funcargs_init(FuncArgs *args, unsigned short capacity)
+FuncArgs *funcargs_create(unsigned short argc)
+{
+    unsigned short checked_argc = argc;
+
+    if (checked_argc > FUNC_ARGV_MAX_SZ) checked_argc = FUNC_ARGV_MAX_SZ;
+
+    FuncArgs *argv = malloc(sizeof(FuncArgs));
+
+    if (argv != NULL)
+    {
+        VarValue **temp_args = malloc(sizeof(VarValue *) * checked_argc);
+
+        for (unsigned short i = 0; i < checked_argc; i++)
+        {
+            temp_args[i] = NULL;
+        }
+
+        argv->args = temp_args;
+        argv->argc = checked_argc;
+    }
+
+    return argv;
+}
+
+void funcargs_dispose(FuncArgs *argv)
+{
+    if (argv->args != NULL)
+    {
+        free(argv->args);
+        argv->args = NULL;
+    }
+
+    argv->argc = 0;
+}
+
+void funcargs_destroy(FuncArgs *argv)
+{
+    unsigned short count = argv->argc;
+    VarValue **target_cursor = argv->args;
+    VarValue *target = NULL;
+
+    for (unsigned short i = 0; i < count; i++)
+    {
+        target = *target_cursor;
+
+        switch (target->type)
+        {
+        case STR_TYPE:
+            
+            break;
+        case LIST_TYPE:
+            
+            break;
+        default:
+            break;
+        }
+
+        target_cursor++;
+    }
+    
+}
+
+int funcargs_set_at(FuncArgs *argv, unsigned short index, VarValue *arg)
+{
+    if (index >= argv->argc) return 0;
+
+    argv->args[index] = arg;
+
+    return 1;
+}
+
+VarValue *funcargs_get_at(const FuncArgs *argv, unsigned short index)
+{
+    if (index >= argv->argc) return NULL;
+
+    return argv->args[index];
+}
+
+
+/// SECTION: Params Impl.
+
+FuncParams *funcparams_create(unsigned short capacity)
 {
     unsigned short checked_capacity = capacity;
 
     if (checked_capacity < FUNC_ARGV_MIN_SZ) checked_capacity = FUNC_ARGV_MIN_SZ;
 
+    FuncParams *fn_params = malloc(sizeof(FuncParams));
+
+    if (!fn_params) return NULL;
+    
     Variable **temp_cells = malloc(sizeof(Variable *) * checked_capacity);
 
     if (!temp_cells)
     {
-        args->argv_dupe_refs = NULL;
-        args->capacity = 0;
+        fn_params->param_refs = NULL;
+        fn_params->capacity = 0;
     }
     else
     {
@@ -29,14 +114,16 @@ void funcargs_init(FuncArgs *args, unsigned short capacity)
             temp_cells[i] = NULL;
         }
 
-        args->argv_dupe_refs = temp_cells;
-        args->capacity = checked_capacity;
+        fn_params->param_refs = temp_cells;
+        fn_params->capacity = checked_capacity;
     }
-    
-    args->count = 0;
+
+    fn_params->count = 0;
+
+    return fn_params;
 }
 
-void funcargs_dispose(FuncArgs *args)
+void funcparams_dispose(FuncParams *args)
 {
     if (args->capacity == 0) return;
 
@@ -44,14 +131,14 @@ void funcargs_dispose(FuncArgs *args)
 
     for (size_t i = 0; i < argc; i++)
     {
-        args->argv_dupe_refs[i] = NULL; // unbind arg value object managed by AST
+        args->param_refs[i] = NULL; // unbind arg value object managed by AST
     }
 
-    free(args->argv_dupe_refs);
-    args->argv_dupe_refs = NULL;
+    free(args->param_refs);
+    args->param_refs = NULL;
 }
 
-void funcargs_destroy(FuncArgs *args)
+void funcparams_destroy(FuncParams *args)
 {
     if (args->capacity == 0) return;
 
@@ -59,15 +146,15 @@ void funcargs_destroy(FuncArgs *args)
 
     for (size_t i = 0; i < argc; i++)
     {
-        variable_destroy(args->argv_dupe_refs[i]);
-        free(args->argv_dupe_refs[i]);
+        variable_destroy(args->param_refs[i]);
+        free(args->param_refs[i]);
     }
 
-    free(args->argv_dupe_refs);
-    args->argv_dupe_refs = NULL;
+    free(args->param_refs);
+    args->param_refs = NULL;
 }
 
-int funcargs_put(FuncArgs *args, Variable *var_arg_obj)
+int funcparams_put(FuncParams *args, Variable *var_arg_obj)
 {
     if (!var_arg_obj || args->capacity == 0) return 0;
 
@@ -77,12 +164,12 @@ int funcargs_put(FuncArgs *args, Variable *var_arg_obj)
 
     if (next_spot <= curr_capacity - 1)
     {
-        args->argv_dupe_refs[next_spot] = var_arg_obj;
+        args->param_refs[next_spot] = var_arg_obj;
         args->count++;
         return 1;
     }
 
-    Variable **temp_argv = realloc(args->argv_dupe_refs, sizeof(Variable *) * new_capacity);
+    Variable **temp_argv = realloc(args->param_refs, sizeof(Variable *) * new_capacity);
 
     if (!temp_argv) return 0;
 
@@ -92,18 +179,18 @@ int funcargs_put(FuncArgs *args, Variable *var_arg_obj)
     }
 
     temp_argv[next_spot] = var_arg_obj;
-    args->argv_dupe_refs = temp_argv;
+    args->param_refs = temp_argv;
     args->capacity = new_capacity;
     args->count++;
 
     return 1;
 }
 
-Variable *funcargs_get(FuncArgs *args, unsigned short index)
+Variable *funcparams_get(FuncParams *args, unsigned short index)
 {
     if (index >= args->count) return NULL;
 
-    return args->argv_dupe_refs[index];
+    return args->param_refs[index];
 }
 
 /// SECTION: Function Impl.
@@ -218,7 +305,7 @@ int funcgroup_put(FuncGroup *fn_group, FuncObj *fn_obj)
 
 const FuncObj *funcgroup_get(const FuncGroup *fn_group, const char *fn_name)
 {
-    if (!fn_name || fn_group->count == 0) return NULL;
+    if (!fn_name || fn_group->count == 0 || !fn_group->used) return NULL;
 
     size_t bucket_index = hash_key(fn_name) % fn_group->count;
 
