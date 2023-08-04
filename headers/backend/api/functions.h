@@ -7,6 +7,7 @@
 /// SECTION: Macros
 
 #define FUNC_ARGV_MIN_SZ 4
+#define FUNC_ARGV_MAX_SZ 32
 
 /// SECTION: Type Decls.
 
@@ -19,32 +20,59 @@ typedef enum en_function_type
     FUNC_UNKNOWN  // reserved for bytecode usage??
 } FuncType;
 
-/// SECTION: Args Impl.
+/// SECTION: Func Args Impl.
 
-typedef struct st_func_argv
+typedef struct st_func_args
 {
-    unsigned short count;
-    unsigned short capacity; // length of fixed arg ptr array
-    Variable **argv_dupe_refs; // array of argument ptrs (as variable or literal) 
+    unsigned short argc;
+    VarValue **args;
 } FuncArgs;
 
-void funcargs_init(FuncArgs *args, unsigned short capacity);
+FuncArgs *funcargs_create(unsigned short argc);
 
 /**
- * @brief Unbinds referencing ptrs to arg values before freeing the ptr array.
- * @param args 
+ * @brief Unbinds referencing ptrs to arg values.
+ * @param argv
  */
-void funcargs_dispose(FuncArgs *args);
+void funcargs_dispose(FuncArgs *argv);
 
 /**
- * @brief Frees dynamic memory within the arg ptr array. Use only for func calls with copied arguments from a fn_call expression.
- * @param args 
+ * @brief Frees up memory of stored referencing ptrs to arg values.
+ * @param argv 
+ * @note Use only when there is no interpreter scope (native func calls!)
  */
-void funcargs_destroy(FuncArgs *args);
+void funcargs_destroy(FuncArgs *argv);
 
-int funcargs_put(FuncArgs *args, Variable *var_arg_obj);
+int funcargs_set_at(FuncArgs *argv, unsigned short index, VarValue *arg);
 
-Variable *funcargs_get(FuncArgs *args, unsigned short index);
+VarValue *funcargs_get_at(const FuncArgs *argv, unsigned short index);
+
+/// SECTION: Func Params Impl.
+
+typedef struct st_func_params
+{
+    unsigned short count;
+    unsigned short capacity; // length of fixed ptr array
+    Variable **param_refs; // array of parameter ptrs (as variable or literal) 
+} FuncParams;
+
+FuncParams *funcparams_create(unsigned short capacity);
+
+/**
+ * @brief Unbinds referencing ptrs to param vars before freeing the ptr array.
+ * @param params 
+ */
+void funcparams_dispose(FuncParams *params);
+
+/**
+ * @brief Frees dynamic memory within the param ptr array. Use only for func calls with loaded params from a fn_call expression.
+ * @param params 
+ */
+void funcparams_destroy(FuncParams *params);
+
+int funcparams_put(FuncParams *params, Variable *var_arg_obj);
+
+Variable *funcparams_get(FuncParams *params, unsigned short index);
 
 /// SECTION: Function Decl.
 
@@ -72,6 +100,7 @@ FuncObj *func_ast_create(char *name, int arity, Statement *fn_ast);
 
 /**
  * @brief Crude named dictionary for functions of an imported module.
+ * @note The 1st FuncGroup is always the script's function module (grouping).
  */
 typedef struct st_func_group
 {
