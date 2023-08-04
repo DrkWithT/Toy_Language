@@ -207,22 +207,14 @@ void destroy_expr(Expression *expr)
 {
     if (expr->type == STR_LITERAL)
     {
-        // TODO: remove destroy-free when interpreter is done.
-        destroy_str_obj(expr->syntax.str_literal.str_obj);
-        free(expr->syntax.str_literal.str_obj);
         expr->syntax.str_literal.str_obj = NULL;
     }
     else if (expr->type == LIST_LITERAL)
     {
-        // TODO: remove this destroy-free too on interpreter finish.
-        destroy_list_obj(expr->syntax.list_literal.list_obj);
-        free(expr->syntax.list_literal.list_obj);
         expr->syntax.list_literal.list_obj = NULL;
     }
     else if (expr->type == VAR_USAGE)
     {
-        // NOTE: free var name since only its hash is needed for running.
-        free(expr->syntax.variable.var_name);
         expr->syntax.variable.var_name = NULL;
     }
     else if (expr->type == FUNC_CALL)
@@ -422,10 +414,10 @@ Statement *create_func_stmt(char *fn_name, Statement *block)
         stmt->type = FUNC_DECL;
         stmt->syntax.func_decl.argc = 0;
         stmt->syntax.func_decl.cap = 4;
-        stmt->syntax.func_decl.func_args = malloc(sizeof(Expression *) * 4);
+        stmt->syntax.func_decl.func_params = malloc(sizeof(Expression *) * 4);
         stmt->syntax.func_decl.stmts = block;
 
-        if (!stmt->syntax.func_decl.func_args)
+        if (!stmt->syntax.func_decl.func_params)
             stmt->syntax.func_decl.cap = 0;  // NOTE: mark bad memory as empty!
     }
 
@@ -437,14 +429,14 @@ int put_arg_func_stmt(Statement *fn_decl, Expression *arg_expr)
     size_t old_capacity = fn_decl->syntax.func_decl.cap;
     size_t new_capacity = old_capacity << 1;
 
-    Expression **raw_args = realloc(fn_decl->syntax.func_decl.func_args, sizeof(Expression *) * new_capacity);
+    Expression **raw_args = realloc(fn_decl->syntax.func_decl.func_params, sizeof(Expression *) * new_capacity);
 
     if (raw_args != NULL)
     {
         for (size_t i = old_capacity; i < new_capacity; i++)
             raw_args[i] = NULL;
 
-        fn_decl->syntax.func_decl.func_args = raw_args;
+        fn_decl->syntax.func_decl.func_params = raw_args;
 
         return 1;
     }
@@ -459,11 +451,11 @@ int pack_args_func_stmt(Statement *fn_decl)
 
     if (curr_capacity <= curr_count) return 1;
 
-    Expression **raw_args = realloc(fn_decl->syntax.func_decl.func_args, sizeof(Expression *) * curr_count);
+    Expression **raw_args = realloc(fn_decl->syntax.func_decl.func_params, sizeof(Expression *) * curr_count);
 
     if (raw_args != NULL)
     {
-        fn_decl->syntax.func_decl.func_args = raw_args;
+        fn_decl->syntax.func_decl.func_params = raw_args;
         return 1;
     }
 
@@ -473,7 +465,7 @@ int pack_args_func_stmt(Statement *fn_decl)
 void clear_func_stmt(Statement *fn_decl)
 {
     // 1. Free memory for argument objects.
-    Expression **args_cursor = fn_decl->syntax.func_decl.func_args;
+    Expression **args_cursor = fn_decl->syntax.func_decl.func_params;
     Expression *target = NULL;
     size_t arg_count = fn_decl->syntax.func_decl.argc;
 
@@ -592,13 +584,11 @@ void destroy_stmt(Statement *stmt)
     else if (stmt->type == VAR_DECL)
     {
         destroy_expr(stmt->syntax.var_decl.rvalue);
-        free(stmt->syntax.var_decl.var_name);
         stmt->syntax.var_decl.var_name = NULL;
     }
     else if (stmt->type == VAR_ASSIGN)
     {
         destroy_expr(stmt->syntax.var_assign.rvalue);
-        free(stmt->syntax.var_assign.var_name);
         stmt->syntax.var_assign.var_name = NULL;
     }
     else if (stmt->type == WHILE_STMT)

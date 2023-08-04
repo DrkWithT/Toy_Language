@@ -198,7 +198,7 @@ int varenv_set_var_ref(VarEnv *venv, Variable *var_obj)
     EnvBuckList *bucket_chain = venv->entries[bucket_index];
     EnvBuckListNode *node = bucklistnode_create(var_obj, NULL);
 
-    if (!node) return 0; // fail fast on allocation failure for chained bucket node since NULL ptrs cannot be accessed anyway
+    if (!var_obj || !node) return 0; // NOTE: fail fast on NULL var or allocation failure for chained bucket node since NULL ptrs cannot be accessed anyway!
 
     if (!bucket_chain)
     {

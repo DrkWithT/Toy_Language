@@ -57,6 +57,9 @@ typedef enum en_stmt_type
     RETURN_STMT
 } StatementType;
 
+/**
+ * @brief AST node for value-giving commands.
+ */
 typedef struct st_expression
 {
     ExpressionType type;
@@ -154,6 +157,9 @@ Expression *create_binary(OpType op, Expression *left, Expression *right);
  */
 void destroy_expr(Expression *expr);
 
+/**
+ * @brief AST node for side-effect commands.
+ */
 typedef struct st_statement
 {
     StatementType type;
@@ -170,7 +176,7 @@ typedef struct st_statement
         {
             char *module_name;
         } module_def;
-        
+
         struct
         {
             char *module_name;
@@ -194,7 +200,7 @@ typedef struct st_statement
             char *func_name;
             unsigned int cap;
             unsigned int argc;
-            struct st_expression **func_args;
+            struct st_expression **func_params;
             struct st_statement *stmts;
         } func_decl;
 
@@ -210,7 +216,7 @@ typedef struct st_statement
             struct st_statement *first;
             struct st_statement *other;
         } if_stmt;
-        
+
         struct
         {
             struct st_statement *stmts;
