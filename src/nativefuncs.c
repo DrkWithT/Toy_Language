@@ -11,35 +11,34 @@
 
 VarValue *rubel_print(FuncArgs *args)
 {
-    Variable *arg1 = funcargs_get(args, 0);
-    DataType arg1_type = arg1->value->type;
-    VarValue *arg1_value = arg1->value;
+    VarValue *arg1 = funcargs_get_at(args, 0);
+    DataType arg1_type = arg1->type;
 
-    if (!arg1_value) return NULL;
+    if (!arg1) return NULL;
 
     switch (arg1_type)
     {
     case INT_TYPE:
-        printf("%i", arg1_value->data.int_val.value);
+        printf("%i", arg1->data.int_val.value);
         break;
     case REAL_TYPE:
-        printf("%f", arg1_value->data.real_val.value);
+        printf("%f", arg1->data.real_val.value);
         break;
     case STR_TYPE:
-        printf("%s", arg1_value->data.str_type.value->source);
+        printf("%s", arg1->data.str_type.value->source);
         break;
     case BOOL_TYPE:
-        if (arg1_value->data.bool_val.flag) printf("boolean($T)");
+        if (arg1->data.bool_val.flag) printf("boolean($T)");
         else printf("boolean($F)");
         break;
     case LIST_TYPE:
-        printf("list[%i]", arg1_value->data.list_type.value->count);
+        printf("list[%i]", arg1->data.list_type.value->count);
         break;
     default:
         break;
     }
 
-    return arg1_value; // return the argument if it existed anyways... tells interpreter that print was OK
+    return NULL; // return the argument if it existed anyways... tells interpreter that print was OK
 }
 
 VarValue *rubel_input(FuncArgs *args)
@@ -73,22 +72,22 @@ VarValue *rubel_input(FuncArgs *args)
 
 VarValue *rubel_list_len(FuncArgs *args)
 {
-    Variable *arg1 = funcargs_get(args, 0);
-    DataType arg1_type = arg1->value->type;
+    VarValue *arg1 = funcargs_get_at(args, 0);
+    DataType arg1_type = arg1->type;
 
     if (arg1_type != LIST_TYPE) return NULL;
 
-    return create_int_varval(0, arg1->value->data.list_type.value->count);
+    return create_int_varval(0, arg1->data.list_type.value->count);
 }
 
 VarValue *rubel_list_at(FuncArgs *args)
 {
-    Variable *arg1 = funcargs_get(args, 0);
-    Variable *arg2 = funcargs_get(args, 1);
-    DataType arg1_type = arg1->value->type;
-    DataType arg2_type = arg2->value->type;
+    VarValue *arg1 = funcargs_get_at(args, 0);
+    VarValue *arg2 = funcargs_get_at(args, 1);
+    DataType arg1_type = arg1->type;
+    DataType arg2_type = arg2->type;
 
     if (arg1_type != LIST_TYPE || arg2_type != INT_TYPE) return NULL;
 
-    return get_at_list_obj(arg1->value->data.list_type.value, (size_t)arg2->value->data.int_val.value);
+    return get_at_list_obj(arg1->data.list_type.value, (size_t)arg2->data.int_val.value);
 }
