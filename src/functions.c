@@ -6,6 +6,7 @@
  */
 
 #include "backend/api/functions.h"
+#include <stdio.h>
 
 /// SECTION: Args Impl.
 
@@ -324,7 +325,7 @@ int funcgroup_put(FuncGroup *fn_group, FuncObj *fn_obj)
 
 const FuncObj *funcgroup_get(const FuncGroup *fn_group, const char *fn_name)
 {
-    if (!fn_name || fn_group->count == 0 || !fn_group->used) return NULL;
+    if (!fn_name || fn_group->count == 0) return NULL;
 
     size_t bucket_index = hash_key(fn_name) % fn_group->count;
 
@@ -414,12 +415,18 @@ FuncGroup *funcenv_fetch(const FuncEnv *fenv, const char *group_name)
 {
     unsigned int countdown = fenv->count;
     FuncGroup **search_ptr = fenv->func_groups;
+    FuncGroup *result = NULL;
 
     while (countdown > 0)
     {
-        if (strcmp((*search_ptr)->name, group_name) == 0)
+        result = *search_ptr;
+
+        if (result->name != NULL)
         {
-            return *search_ptr;
+            if (strcmp(result->name, group_name) == 0)
+            {
+                return result;
+            }
         }
 
         countdown--;
