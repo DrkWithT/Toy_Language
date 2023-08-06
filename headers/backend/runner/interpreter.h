@@ -32,6 +32,8 @@ void interpreter_dispose(Interpreter *runner);
  */
 int interpreter_load_natives(Interpreter *runner, FuncGroup *native_module);
 
+void interpreter_log_err(Interpreter *runner, unsigned int top_stmt_num, RunStatus status);
+
 void interpreter_run(Interpreter *runner);
 
 #endif
