@@ -42,3 +42,5 @@ This will be a toy language interpreter using the tree walk approach on a genera
  2. ~~Make interpreter: create scopes as HashTable using bucket lists~~, native function API, and evaluator as visitor pattern on AST.
  3. Test sample scripts! (Fix segfault on other few test scripts!)
  4. Refactor and test code even more?
+   - Add println native function!!
+   - MEGA FIX TODO: **Add storing of params into func objects within exec_func_decl(...)!**

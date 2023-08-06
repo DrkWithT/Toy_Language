@@ -4,7 +4,7 @@
 
 # compiler vars
 CC := clang -std=c11
-CFLAGS := -Wall -Werror -O0
+CFLAGS := -g -Wall -Werror -O0
 
 # executable dir
 BIN_DIR := ./bin
