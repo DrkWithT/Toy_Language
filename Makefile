@@ -2,16 +2,9 @@
 # Project: Rubel Language
 # Derek Tan
 
-# debugging flag config
-DO_DEBUG := 1
-
 # compiler vars
-CC := gcc -std=c11
-CFLAGS := -Wall -Werror
-
-ifeq (DO_DEBUG, 1)
-	CFLAGS += -g
-endif
+CC := clang -std=c11
+CFLAGS := -Wall -Werror -O0
 
 # executable dir
 BIN_DIR := ./bin
