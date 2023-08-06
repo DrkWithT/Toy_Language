@@ -96,6 +96,12 @@ FuncObj *func_native_create(char *name, int arity, NativeFunc *fn_ptr);
 
 FuncObj *func_ast_create(char *name, int arity, Statement *fn_ast);
 
+/**
+ * @brief Unbinds the AST subtree or function address of the function's content. However, the name string is freed.
+ * @param fn_obj
+ */
+void func_dispose(FuncObj *fn_obj);
+
 /// SECTION: Function Storage
 
 /**

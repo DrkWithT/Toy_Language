@@ -225,6 +225,27 @@ FuncObj *func_ast_create(char *name, int arity, Statement *fn_ast)
     return fn_obj;
 }
 
+void func_dispose(FuncObj *fn_obj)
+{
+    if (fn_obj->name != NULL)
+    {
+        free(fn_obj->name);
+        fn_obj->name = NULL;
+    }
+
+    switch (fn_obj->type)
+    {
+    case FUNC_NORMAL:
+        fn_obj->content.fn_ast = NULL;
+        break;
+    case FUNC_NATIVE:
+        fn_obj->content.fn_ptr = NULL;
+        break;
+    default:
+        break;
+    }
+}
+
 /// SECTION: Function Storage Impl. TODO!!
 
 FuncGroup *funcgroup_create(char *name, unsigned int buckets)
