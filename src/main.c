@@ -90,10 +90,29 @@ int main(int argc, char *argv[])
         print_stmt(program->stmts[i]);
     }
 
-    /// TODO: test run interpreter.
+    /// Make and bind native modules.
+    FuncGroup *io_module = funcgroup_create("io", 4);
+    funcgroup_put(io_module, func_native_create("print", 1, rubel_print));
+    funcgroup_put(io_module, func_native_create("input", 0, rubel_input));
+
+    FuncGroup *lists_module = funcgroup_create("lists", 4);
+    funcgroup_put(lists_module, func_native_create("at", 2, rubel_list_at));
+    funcgroup_put(lists_module, func_native_create("len", 1, rubel_list_len));
+
     Interpreter prgm_runner;
     interpreter_init(&prgm_runner, program);
 
+    int loaded_io = interpreter_load_natives(&prgm_runner, io_module);
+    int loaded_lists = interpreter_load_natives(&prgm_runner, lists_module);
+
+    // Check if needed modules were loaded so execution is a bit safer.
+    if (!loaded_io || !loaded_lists)
+    {
+        interpreter_dispose(&prgm_runner);
+        return 1;
+    }
+
+    /// Test run interpreter.
     interpreter_run(&prgm_runner);
 
     interpreter_dispose(&prgm_runner);
