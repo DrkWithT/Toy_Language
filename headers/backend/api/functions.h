@@ -11,7 +11,7 @@
 
 /// SECTION: Type Decls.
 
-typedef VarValue *(*NativeFunc)(const struct st_func_argv *args);
+typedef VarValue *(*NativeFunc)(const struct st_func_args *args);
 
 typedef enum en_function_type
 {
@@ -119,7 +119,7 @@ typedef struct st_func_group
 FuncGroup *funcgroup_create(char *name, unsigned int buckets);
 
 /**
- * @brief Frees internal memory within this function dictionary. FuncObj has its names and contents unbound before freeing. Finally the outer bucket array is freed.
+ * @brief Cleans up this function dictionary, but its name string is static- cannot be freed. FuncObj has its names and contents unbound before freeing. Finally the outer bucket array is freed.
  * @param fn_group
  */
 void funcgroup_dispose(FuncGroup *fn_group);

@@ -227,7 +227,7 @@ FuncObj *func_ast_create(char *name, int arity, Statement *fn_ast)
 
 void func_dispose(FuncObj *fn_obj)
 {
-    if (fn_obj->name != NULL)
+    if (fn_obj->name != NULL && fn_obj->type != FUNC_NATIVE)
     {
         free(fn_obj->name);
         fn_obj->name = NULL;
@@ -278,11 +278,7 @@ FuncGroup *funcgroup_create(char *name, unsigned int buckets)
 
 void funcgroup_dispose(FuncGroup *fn_group)
 {
-    if (fn_group->name != NULL)
-    {
-        free(fn_group->name);
-        fn_group->name = NULL;
-    }
+    fn_group->name = NULL; // TODO: add check for module's nativeness before unbind OR freeing the name string.
 
     size_t fn_count = fn_group->count;
 
