@@ -1,4 +1,5 @@
 #include "frontend/parser.h"
+#include "backend/runner/interpreter.h"
 
 /**
  * @file main.c 
@@ -73,6 +74,10 @@ int main(int argc, char *argv[])
 
     Script *program = parser_parse_all(&parser, argv[2]);
 
+    // Discard old copied source code string.
+    free(source);
+    source = NULL;
+
     if (!program)
     {
         printf("Failed to parse program. :(\n");
@@ -85,9 +90,13 @@ int main(int argc, char *argv[])
         print_stmt(program->stmts[i]);
     }
 
-    dispose_script(program);
-    free(program);
-    free(source);
+    /// TODO: test run interpreter.
+    Interpreter prgm_runner;
+    interpreter_init(&prgm_runner, program);
+
+    interpreter_run(&prgm_runner);
+
+    interpreter_dispose(&prgm_runner);
 
     return 0;
 }
