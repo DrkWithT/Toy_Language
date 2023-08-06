@@ -40,5 +40,5 @@ This will be a toy language interpreter using the tree walk approach on a genera
  1. ~~Make parser and `vartypes.h` structures.~~
    - Later add logical expressions.
  2. ~~Make interpreter: create scopes as HashTable using bucket lists~~, native function API, and evaluator as visitor pattern on AST.
- 3. Test sample scripts!
+ 3. Test sample scripts! (Fix segfault on other few test scripts!)
  4. Refactor and test code even more?

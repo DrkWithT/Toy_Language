@@ -8,7 +8,7 @@ const target = 4
 
 proc findNum(numbers, num)
     let i = 0
-    let count = len(numbers)
+    let count = length(numbers)
 
     while (i < count)
         if (at(numbers, i) == num)
