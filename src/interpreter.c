@@ -34,19 +34,19 @@ void interpreter_log_err(Interpreter *runner, unsigned int top_stmt_num, RunStat
     switch (status)
     {
     case ERR_TYPE:
-        printf("TypeErr at stmt %zi: %s\n", top_stmt_num, "Invalid types for operator.");
+        printf("TypeErr at stmt %u: %s\n", top_stmt_num, "Invalid types for operator.");
         break;
     case ERR_NULL_VAL:
-        printf("NullErr at stmt %zi: %s\n", top_stmt_num, "Yielded undefined value in operation.");
+        printf("NullErr at stmt %u: %s\n", top_stmt_num, "Yielded undefined value in operation.");
         break;
     case ERR_MEMORY:
-        printf("MemoryErr at stmt %zi: %s\n", top_stmt_num, "Allocation failure or invalid reference passed.");
+        printf("MemoryErr at stmt %u: %s\n", top_stmt_num, "Allocation failure or invalid reference passed.");
         break;
     case ERR_NO_IMPL:
-        printf("NoImplErr at stmt %zi: %s\n", top_stmt_num, "Item not found in scope.");
+        printf("NoImplErr at stmt %u: %s\n", top_stmt_num, "Item not found in scope.");
         break;
     case ERR_GENERAL:
-        printf("BaseRunErr at stmt %zi: %s\n", top_stmt_num, "Unknown runtime error.");
+        printf("BaseRunErr at stmt %u: %s\n", top_stmt_num, "Unknown runtime error.");
         break;
     default:
         break;

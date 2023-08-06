@@ -195,7 +195,7 @@ Variable *funcparams_get(FuncParams *args, unsigned short index)
 
 /// SECTION: Function Impl.
 
-FuncObj *func_native_create(char *name, int arity, NativeFunc *fn_ptr)
+FuncObj *func_native_create(char *name, int arity, NativeFunc fn_ptr)
 {
     FuncObj *fn_obj = malloc(sizeof(FuncObj));
 
@@ -410,7 +410,7 @@ int funcenv_append(FuncEnv *fenv, FuncGroup *fn_group_obj)
     return 1;
 }
 
-const FuncGroup *funcenv_fetch(const FuncEnv *fenv, const char *group_name)
+FuncGroup *funcenv_fetch(const FuncEnv *fenv, const char *group_name)
 {
     unsigned int countdown = fenv->count;
     FuncGroup **search_ptr = fenv->func_groups;
@@ -419,7 +419,7 @@ const FuncGroup *funcenv_fetch(const FuncEnv *fenv, const char *group_name)
     {
         if (strcmp((*search_ptr)->name, group_name) == 0)
         {
-            return search_ptr;
+            return *search_ptr;
         }
 
         countdown--;

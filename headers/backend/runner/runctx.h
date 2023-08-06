@@ -44,7 +44,7 @@ int ctx_load_funcgroup(RunnerContext *ctx, FuncGroup *module);
 
 /// SECTION: Function helpers
 
-FuncObj *ctx_get_func(const RunnerContext *ctx, const char *fn_name);
+const FuncObj *ctx_get_func(const RunnerContext *ctx, const char *fn_name);
 
 VarValue *ctx_call_func(RunnerContext *ctx, unsigned short argc, const char *fn_name, FuncArgs *args);
 
@@ -52,9 +52,9 @@ VarValue *ctx_call_func(RunnerContext *ctx, unsigned short argc, const char *fn_
 
 Variable *ctx_get_var(const RunnerContext *ctx, const char *var_name);
 
-int ctx_create_var(RunnerContext *ctx, const char *var_name, VarValue *var_val);
+int ctx_create_var(RunnerContext *ctx, char *var_name, VarValue *var_val);
 
-int ctx_update_var(RunnerContext *ctx, const char *var_name, VarValue *var_val);
+int ctx_update_var(RunnerContext *ctx, char *var_name, VarValue *var_val);
 
 /// SECTION: Expr helpers
 

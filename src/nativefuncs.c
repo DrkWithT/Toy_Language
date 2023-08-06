@@ -32,7 +32,7 @@ VarValue *rubel_print(FuncArgs *args)
         else printf("boolean($F)");
         break;
     case LIST_TYPE:
-        printf("list[%i]", arg1->data.list_type.value->count);
+        printf("list[%zu]", arg1->data.list_type.value->count);
         break;
     default:
         break;

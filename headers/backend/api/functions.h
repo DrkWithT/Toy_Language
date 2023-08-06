@@ -11,8 +11,6 @@
 
 /// SECTION: Type Decls.
 
-typedef VarValue *(*NativeFunc)(const struct st_func_args *args);
-
 typedef enum en_function_type
 {
     FUNC_NATIVE,  // wrapper for C function
@@ -27,6 +25,8 @@ typedef struct st_func_args
     unsigned short argc;
     VarValue **args;
 } FuncArgs;
+
+typedef VarValue *(*NativeFunc)(struct st_func_args *args);
 
 FuncArgs *funcargs_create(unsigned short argc);
 
@@ -92,7 +92,7 @@ typedef struct st_function
     } content;
 } FuncObj;
 
-FuncObj *func_native_create(char *name, int arity, NativeFunc *fn_ptr);
+FuncObj *func_native_create(char *name, int arity, NativeFunc fn_ptr);
 
 FuncObj *func_ast_create(char *name, int arity, Statement *fn_ast);
 
@@ -148,6 +148,6 @@ void funcenv_dispose(FuncEnv *fenv);
 
 int funcenv_append(FuncEnv *fenv, FuncGroup *fn_group_obj);
 
-const FuncGroup *funcenv_fetch(const FuncEnv *fenv, const char *group_name);
+FuncGroup *funcenv_fetch(const FuncEnv *fenv, const char *group_name);
 
 #endif

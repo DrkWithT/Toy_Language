@@ -108,7 +108,7 @@ int ctx_load_funcgroup(RunnerContext *ctx, FuncGroup *module)
 
 /// SECTION: function helpers
 
-FuncObj *ctx_get_func(const RunnerContext *ctx, const char *fn_name)
+const FuncObj *ctx_get_func(const RunnerContext *ctx, const char *fn_name)
 {
     if (!fn_name) return NULL;
 
@@ -140,7 +140,7 @@ VarValue *ctx_call_func(RunnerContext *ctx, unsigned short argc, const char *fn_
     }
 
     // prepare and check callee first!
-    FuncObj *callee_ref = ctx_get_func(ctx, fn_name);
+    const FuncObj *callee_ref = ctx_get_func(ctx, fn_name);
     FuncType callee_type = callee_ref->type;
     unsigned short callee_argc = callee_ref->arity;
 
@@ -233,7 +233,7 @@ Variable *ctx_get_var(const RunnerContext *ctx, const char *var_name)
     return NULL;
 }
 
-int ctx_create_var(RunnerContext *ctx, const char *var_name, VarValue *var_val)
+int ctx_create_var(RunnerContext *ctx, char *var_name, VarValue *var_val)
 {
     if (!var_name || !var_val) return 0;
 
@@ -245,13 +245,15 @@ int ctx_create_var(RunnerContext *ctx, const char *var_name, VarValue *var_val)
     return scope_put_var(curr_scope, new_var);
 }
 
-int ctx_update_var(RunnerContext *ctx, const char *var_name, VarValue *var_val)
+int ctx_update_var(RunnerContext *ctx, char *var_name, VarValue *var_val)
 {
     if (!var_name || !var_val) return 0;
 
     Variable *used_var = ctx_get_var(ctx, var_name);
     DataType lval_type = variable_get_type(used_var);
     DataType rval_type = var_val->type;
+    StringObj *optional_str = NULL;
+    ListObj *optional_list = NULL;
 
     if (variable_is_const(used_var)) return 0;
 
@@ -270,18 +272,18 @@ int ctx_update_var(RunnerContext *ctx, const char *var_name, VarValue *var_val)
         break;
     case STR_TYPE:
         // clear old string
-        StringObj *old_str = used_var->value->data.str_type.value;
-        destroy_str_obj(old_str);
-        free(old_str);
+        optional_str = used_var->value->data.str_type.value;
+        destroy_str_obj(optional_str);
+        free(optional_str);
 
         // set new one
         used_var->value->data.str_type.value = var_val->data.str_type.value;
         break;
     case LIST_TYPE:
         // clear old list
-        ListObj *old_list = used_var->value->data.list_type.value;
-        destroy_list_obj(old_list);
-        free(old_list);
+        optional_list = used_var->value->data.list_type.value;
+        destroy_list_obj(optional_list);
+        free(optional_list);
 
         used_var->value->data.list_type.value = var_val->data.list_type.value;
         break;
@@ -402,7 +404,7 @@ VarValue *eval_call(RunnerContext *ctx, Expression *expr)
 VarValue *eval_unary(RunnerContext *ctx, Expression *expr)
 {
     VarValue *result = NULL;
-    DataType expr_type = expr->type;
+    ExpressionType expr_type = expr->type;
     OpType operation = expr->syntax.unary_op.op;
 
     if (operation != OP_NEG)
@@ -523,7 +525,7 @@ VarValue *math_primitives(OpType op, VarValue *left_val, VarValue *right_val)
             result = create_real_varval(1, left_flt * right_flt);
             break;
         case OP_DIV:
-            if (right_int != 0) result = create_real_varval(1, left_flt / right_flt);
+            if (right_flt != 0) result = create_real_varval(1, left_flt / right_flt);
             break;
         default:
             break;
@@ -634,7 +636,7 @@ RunStatus exec_module_usage(RunnerContext *ctx, Statement *stmt)
     const FuncEnv *ctx_modules = ctx->function_env;
     const char *module_name = stmt->syntax.module_usage.module_name;
 
-    const FuncGroup *module_ref = funcenv_fetch(ctx_modules, module_name);
+    FuncGroup *module_ref = funcenv_fetch(ctx_modules, module_name);
 
     if (!module_ref) return ERR_NO_IMPL;
 
@@ -667,7 +669,6 @@ RunStatus exec_var_decl(RunnerContext *ctx, Statement *stmt)
 
 RunStatus exec_var_assign(RunnerContext *ctx, Statement *stmt)
 {
-    RubelScope *curr_scope = ctx->scopes.scopes[ctx->scopes.stack_ptr];
     char *lvalue_name = stmt->syntax.var_assign.var_name;
     Expression *rvalue_expr = stmt->syntax.var_assign.rvalue;
     Variable *lvalue_ref = ctx_get_var(ctx, lvalue_name);
@@ -744,7 +745,7 @@ VarValue *exec_while(RunnerContext *ctx, Statement *stmt)
         free(expr_value);
 
         expr_value = eval_expr(ctx, while_condition);
-        flag == expr_value->data.bool_val.flag;
+        flag = expr_value->data.bool_val.flag;
     }
 
     varval_destroy(expr_value);

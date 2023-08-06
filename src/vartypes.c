@@ -316,5 +316,5 @@ VarValue *get_at_list_obj(const ListObj *list, size_t index)
         countdown--;
     }
 
-    return temp_ptr;
+    return temp_ptr->value;
 }
