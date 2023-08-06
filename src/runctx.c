@@ -882,10 +882,8 @@ RunStatus exec_expr_stmt(RunnerContext *ctx, Statement *stmt)
     return OK_RAN_CMD;
 }
 
-// NOTE: should I return run status here, or should I use void exec_stmt which sets ctx->status instead?
 RunStatus exec_stmt(RunnerContext *ctx, Statement *stmt)
 {
-    // todo: implement switch cases for stmt types to execute.
     RunStatus exec_status = ERR_GENERAL;
     StatementType stmt_type = stmt->type;
 
