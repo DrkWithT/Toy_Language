@@ -97,10 +97,14 @@ int main(int argc, char *argv[])
 
     FuncGroup *lists_module = funcgroup_create("lists", 4);
     funcgroup_put(lists_module, func_native_create("at", 2, rubel_list_at));
-    funcgroup_put(lists_module, func_native_create("len", 1, rubel_list_len));
+    funcgroup_put(lists_module, func_native_create("length", 1, rubel_list_len));
 
     Interpreter prgm_runner;
-    interpreter_init(&prgm_runner, program);
+    if (!interpreter_init(&prgm_runner, program))
+    {
+        puts("Failed to init interpreter.");
+        return 1;
+    }
 
     int loaded_io = interpreter_load_natives(&prgm_runner, io_module);
     int loaded_lists = interpreter_load_natives(&prgm_runner, lists_module);
