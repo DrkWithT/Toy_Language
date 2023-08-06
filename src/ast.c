@@ -110,8 +110,16 @@ Expression *create_call(char *fn_name)
 
 int add_arg_call(Expression *call_expr, Expression *arg_expr)
 {
+    size_t next_spot = call_expr->syntax.fn_call.argc;
     size_t old_capacity = call_expr->syntax.fn_call.cap;
     size_t new_capacity = old_capacity << 1;
+
+    if (next_spot <= old_capacity - 1)
+    {
+        call_expr->syntax.fn_call.args[next_spot] = arg_expr;
+        call_expr->syntax.fn_call.argc++;
+        return 1;
+    }
 
     Expression **raw_block = realloc(call_expr->syntax.fn_call.args, sizeof(Expression *) * new_capacity);
 
@@ -120,7 +128,11 @@ int add_arg_call(Expression *call_expr, Expression *arg_expr)
         for (size_t i = old_capacity; i < new_capacity; i++)
             raw_block[i] = NULL;
         
+        call_expr->syntax.fn_call.args[next_spot] = arg_expr;
         call_expr->syntax.fn_call.args = raw_block;
+        call_expr->syntax.fn_call.argc++;
+        call_expr->syntax.fn_call.cap = new_capacity;
+
         return 1;
     }
 
