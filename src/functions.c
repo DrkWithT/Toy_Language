@@ -288,7 +288,9 @@ void funcgroup_dispose(FuncGroup *fn_group)
 
     for (size_t i = 0; i < fn_count; i++)
     {
-        free(fn_group->fn_buckets[i]);
+        FuncObj *fn_ref = fn_group->fn_buckets[i];
+        func_dispose(fn_ref);
+        free(fn_ref);
         fn_group->fn_buckets[i] = NULL;
     }
 

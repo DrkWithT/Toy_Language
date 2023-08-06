@@ -578,7 +578,6 @@ void destroy_stmt(Statement *stmt)
     else if (stmt->type == FUNC_DECL)
     {
         clear_block_stmt(stmt->syntax.func_decl.stmts);
-        free(stmt->syntax.func_decl.func_name);
         stmt->syntax.func_decl.func_name = NULL;
     }
     else if (stmt->type == VAR_DECL)
