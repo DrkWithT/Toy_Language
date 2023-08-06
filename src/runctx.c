@@ -48,6 +48,9 @@ int ctx_init(RunnerContext *ctx, Script *program)
         return flag_success;
     }
 
+    // NOTE: global (no-name) module is always "used"!
+    funcgroup_mark_used(script_funcs, 1);
+
     // load in main script functions to top function environment!
     size_t prgm_len = program->count;
     Statement **stmt_ptr = program->stmts;
@@ -103,6 +106,8 @@ int ctx_load_funcgroup(RunnerContext *ctx, FuncGroup *module)
 {
     if (!module) return 0;
 
+    funcgroup_mark_used(module, 1);
+
     return funcenv_append(ctx->function_env, module);
 }
 
@@ -110,20 +115,27 @@ int ctx_load_funcgroup(RunnerContext *ctx, FuncGroup *module)
 
 const FuncObj *ctx_get_func(const RunnerContext *ctx, const char *fn_name)
 {
+    puts("ctx_get_func");
     if (!fn_name) return NULL;
 
     FuncGroup **fenv_cursor = ctx->function_env->func_groups;
+    FuncGroup *module_ref = NULL;
     const FuncObj *result_fn = NULL;
     size_t fenv_len = ctx->function_env->count;
 
     // NOTE: brute force search for function decl... poor Big-O (n^2?) but will work for uniquely named ones for now.
     for (size_t i = 0; i < fenv_len; i++)
     {
-        if (!funcgroup_is_used(*fenv_cursor)) break; // NOTE: this should ignore unused function modules.
+        module_ref = *fenv_cursor;
 
-        result_fn = funcgroup_get(*fenv_cursor, fn_name);
+        if (!funcgroup_is_used(module_ref)) break; // NOTE: this should ignore unused function modules.
 
-        if (strcmp(result_fn->name, fn_name) == 0) return result_fn;
+        result_fn = funcgroup_get(module_ref, fn_name);
+
+        if (result_fn != NULL)
+        {
+            if (strcmp(result_fn->name, fn_name) == 0) return result_fn;
+        }
 
         fenv_cursor++;
     }
@@ -133,6 +145,7 @@ const FuncObj *ctx_get_func(const RunnerContext *ctx, const char *fn_name)
 
 VarValue *ctx_call_func(RunnerContext *ctx, unsigned short argc, const char *fn_name, FuncArgs *args)
 {
+    puts("ctx_call_func");
     if (!fn_name)
     {
         ctx_set_status(ctx, ERR_NULL_VAL);
@@ -141,9 +154,6 @@ VarValue *ctx_call_func(RunnerContext *ctx, unsigned short argc, const char *fn_
 
     // prepare and check callee first!
     const FuncObj *callee_ref = ctx_get_func(ctx, fn_name);
-    FuncType callee_type = callee_ref->type;
-    unsigned short callee_argc = callee_ref->arity;
-
     VarValue *result = NULL;
 
     // reject unknown callees in the context!
@@ -153,7 +163,11 @@ VarValue *ctx_call_func(RunnerContext *ctx, unsigned short argc, const char *fn_
         return result;
     }
 
+    FuncType callee_type = callee_ref->type;
+    unsigned short callee_argc = callee_ref->arity;
+
     // reject wrong argument array length since the function decl cannot match it!
+    puts("ctx_call_func check argc");
     if (callee_argc != argc)
     {
         ctx_set_status(ctx, ERR_NO_IMPL);
@@ -163,6 +177,7 @@ VarValue *ctx_call_func(RunnerContext *ctx, unsigned short argc, const char *fn_
     // NOTE: check for native function to avoid making an interpreter scope for it since ISA/machine-code handles native vars scope!
     if (callee_type == FUNC_NATIVE)
     {
+        puts("ctx_call_func calling native");
         result = callee_ref->content.fn_ptr(args);
 
         funcargs_destroy(args); // NOTE: still, free up args!
@@ -298,6 +313,7 @@ int ctx_update_var(RunnerContext *ctx, char *var_name, VarValue *var_val)
 
 VarValue *eval_literal(RunnerContext *ctx, Expression *expr)
 {
+    puts("eval_literal");
     VarValue *result = NULL;
     ExpressionType expr_type = expr->type;
 
@@ -329,6 +345,7 @@ VarValue *eval_literal(RunnerContext *ctx, Expression *expr)
 
 VarValue *eval_var_usage(RunnerContext *ctx, Expression *expr)
 {
+    puts("eval_var_usage");
     RubelScope *curr_scope = ctx->scopes.scopes[ctx->scopes.stack_ptr];
     Variable *var_ref = NULL;
     VarValue *result = NULL;
@@ -374,6 +391,7 @@ VarValue *eval_var_usage(RunnerContext *ctx, Expression *expr)
 
 VarValue *eval_call(RunnerContext *ctx, Expression *expr)
 {
+    puts("eval_call");
     const char *fn_name = expr->syntax.fn_call.func_name;
     unsigned short argc = (unsigned short)(expr->syntax.fn_call.argc);
     FuncArgs *call_args = funcargs_create(argc);
@@ -385,7 +403,7 @@ VarValue *eval_call(RunnerContext *ctx, Expression *expr)
         return fn_result;
     }
 
-    // populate args to later bind to callee parameters!
+    // populate params to later bind to callee scope
     for(unsigned short arg_index = 0; arg_index < argc; arg_index++)
     {
         Expression *arg_expr = expr->syntax.fn_call.args[arg_index];
@@ -403,6 +421,7 @@ VarValue *eval_call(RunnerContext *ctx, Expression *expr)
 
 VarValue *eval_unary(RunnerContext *ctx, Expression *expr)
 {
+    puts("eval_unary");
     VarValue *result = NULL;
     ExpressionType expr_type = expr->type;
     OpType operation = expr->syntax.unary_op.op;
@@ -436,6 +455,7 @@ VarValue *eval_unary(RunnerContext *ctx, Expression *expr)
 
 int compare_primitives(OpType op, VarValue *left_val, VarValue *right_val)
 {
+    puts("compare_primitives");
     DataType left_type = left_val->type; // NOTE: assumed to be same type as right value since this is called after a type check! 
     int left_n, right_n;
     float left_f, right_f;
@@ -482,6 +502,7 @@ int compare_primitives(OpType op, VarValue *left_val, VarValue *right_val)
 
 VarValue *math_primitives(OpType op, VarValue *left_val, VarValue *right_val)
 {
+    puts("math_primitives");
     DataType left_type = left_val->type;
     VarValue *result = NULL;
     int left_int, right_int;
@@ -540,6 +561,7 @@ VarValue *math_primitives(OpType op, VarValue *left_val, VarValue *right_val)
 
 VarValue *eval_comparison(RunnerContext *ctx, OpType op, VarValue *left_val, VarValue *right_val)
 {
+    puts("eval_comparison");
     int flag = 0;
     VarValue *result = NULL;
 
@@ -563,6 +585,7 @@ VarValue *eval_comparison(RunnerContext *ctx, OpType op, VarValue *left_val, Var
 
 VarValue *eval_binary(RunnerContext *ctx, Expression *expr)
 {
+    puts("eval_binary");
     Expression *left = expr->syntax.binary_op.left;
     Expression *right = expr->syntax.binary_op.right;
     OpType operation = expr->syntax.binary_op.op;
@@ -593,6 +616,7 @@ VarValue *eval_binary(RunnerContext *ctx, Expression *expr)
 
 VarValue *eval_expr(RunnerContext *ctx, Expression *expr)
 {
+    puts("eval_expr");
     VarValue *expr_result = NULL;
 
     switch (expr->type)
@@ -628,11 +652,13 @@ VarValue *eval_expr(RunnerContext *ctx, Expression *expr)
 
 RunStatus exec_module_decl(RunnerContext *ctx, Statement *stmt)
 {
+    puts("exec_module_decl");
     return ERR_NO_IMPL; // TODO: implement this to prepare a module's FuncGroup to later put in RunnerContext.
 }
 
 RunStatus exec_module_usage(RunnerContext *ctx, Statement *stmt)
 {
+    puts("exec_module_usage");
     const FuncEnv *ctx_modules = ctx->function_env;
     const char *module_name = stmt->syntax.module_usage.module_name;
 
@@ -647,6 +673,7 @@ RunStatus exec_module_usage(RunnerContext *ctx, Statement *stmt)
 
 RunStatus exec_var_decl(RunnerContext *ctx, Statement *stmt)
 {
+    puts("exec_var_decl");
     RubelScope *curr_scope = ctx->scopes.scopes[ctx->scopes.stack_ptr];
     char *var_name = stmt->syntax.var_decl.var_name;
     Expression *rvalue_expr = stmt->syntax.var_decl.rvalue;
@@ -669,6 +696,7 @@ RunStatus exec_var_decl(RunnerContext *ctx, Statement *stmt)
 
 RunStatus exec_var_assign(RunnerContext *ctx, Statement *stmt)
 {
+    puts("exec_var_assign");
     char *lvalue_name = stmt->syntax.var_assign.var_name;
     Expression *rvalue_expr = stmt->syntax.var_assign.rvalue;
     Variable *lvalue_ref = ctx_get_var(ctx, lvalue_name);
@@ -693,6 +721,7 @@ RunStatus exec_var_assign(RunnerContext *ctx, Statement *stmt)
 
 RunStatus exec_func_decl(RunnerContext *ctx, Statement *stmt)
 {
+    puts("exec_func_decl");
     FuncGroup *script_module = ctx->function_env->func_groups[0];
     unsigned short fn_arity = stmt->syntax.func_decl.argc;
     char *fn_name = stmt->syntax.func_decl.func_name;
@@ -708,6 +737,7 @@ RunStatus exec_func_decl(RunnerContext *ctx, Statement *stmt)
 
 VarValue *exec_while(RunnerContext *ctx, Statement *stmt)
 {
+    puts("exec_while");
     Expression *while_condition = stmt->syntax.while_stmt.condition;
     Statement *while_block = stmt->syntax.while_stmt.stmts;
     VarValue *expr_value = eval_expr(ctx, while_condition);
@@ -758,6 +788,7 @@ VarValue *exec_while(RunnerContext *ctx, Statement *stmt)
 
 VarValue *exec_block(RunnerContext *ctx, Statement *stmt)
 {
+    puts("exec_block");
     unsigned int block_len = stmt->syntax.block.count;
     Statement **stmt_cursor = stmt->syntax.block.stmts;
     Statement *curr_stmt = NULL;
@@ -813,6 +844,7 @@ VarValue *exec_block(RunnerContext *ctx, Statement *stmt)
 
 VarValue *exec_ifotherwise(RunnerContext *ctx, Statement *stmt)
 {
+    puts("exec_ifotherwise");
     Expression *condition_expr = stmt->syntax.if_stmt.condition;
     VarValue *check_result = NULL;
     VarValue *optional_result = NULL;
@@ -843,11 +875,13 @@ VarValue *exec_ifotherwise(RunnerContext *ctx, Statement *stmt)
 
 RunStatus exec_break(RunnerContext *ctx, Statement *stmt)
 {
+    puts("exec_break");
     return OK_CTRL_BREAK;
 }
 
 VarValue *exec_return(RunnerContext *ctx, Statement *stmt)
 {
+    puts("exec_return");
     // todo: don't call in top level exec_stmt!
     Expression *expr_ref = stmt->syntax.return_stmt.result;
     VarValue *expr_val = eval_expr(ctx, expr_ref);
@@ -864,6 +898,7 @@ VarValue *exec_return(RunnerContext *ctx, Statement *stmt)
 
 RunStatus exec_expr_stmt(RunnerContext *ctx, Statement *stmt)
 {
+    puts("exec_expr_stmt");
     // NOTE: results may be destroyed in exec_stmt, as expr_stmts usually should be lone function calls like print("hi").
     Expression *expr = stmt->syntax.expr_stmt.expr;
     ExpressionType expr_type = expr->type;
@@ -885,6 +920,7 @@ RunStatus exec_expr_stmt(RunnerContext *ctx, Statement *stmt)
 
 RunStatus exec_stmt(RunnerContext *ctx, Statement *stmt)
 {
+    puts("exec_stmt");
     RunStatus exec_status = ERR_GENERAL;
     StatementType stmt_type = stmt->type;
 
