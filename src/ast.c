@@ -3,7 +3,6 @@
  * @author Derek Tan
  * @brief Implements AST structures and functions.
  * @date 2023-07-23
- * @todo Modify AST node destroy_xx functions when interpreter is done: the str_obj and list_obj properties must be unbound as they are managed by VarEnv or Scope objects.
  */
 
 #include "frontend/ast.h"
@@ -290,13 +289,13 @@ int grow_block_stmt(Statement *block_stmt, Statement *new_stmt)
     if (!new_stmt)
         return 0;
 
-    size_t curr_count = block_stmt->syntax.block.count;
+    size_t next_spot = block_stmt->syntax.block.count;
     size_t old_capacity = block_stmt->syntax.block.capacity;
     size_t new_capacity = old_capacity << 1;
 
-    if (curr_count < old_capacity)
+    if (next_spot <= old_capacity - 1)
     {
-        block_stmt->syntax.block.stmts[curr_count - 1] = new_stmt;
+        block_stmt->syntax.block.stmts[next_spot] = new_stmt;
         block_stmt->syntax.block.count++;
         return 1;
     }
@@ -305,13 +304,14 @@ int grow_block_stmt(Statement *block_stmt, Statement *new_stmt)
 
     if (raw_block != NULL)
     {
-        for (size_t i = old_capacity; i < new_capacity; i++)
+        for (size_t i = next_spot; i < new_capacity; i++)
             raw_block[i] = NULL;
         
+        raw_block[next_spot] = new_stmt;
         block_stmt->syntax.block.stmts = raw_block;
-        block_stmt->syntax.block.stmts[old_capacity] = new_stmt;
-        
         block_stmt->syntax.block.count++;
+        block_stmt->syntax.block.capacity = new_capacity;
+
         return 1;
     }
 
@@ -424,6 +424,7 @@ Statement *create_func_stmt(char *fn_name, Statement *block)
     if (stmt != NULL)
     {
         stmt->type = FUNC_DECL;
+        stmt->syntax.func_decl.func_name = fn_name;
         stmt->syntax.func_decl.argc = 0;
         stmt->syntax.func_decl.cap = 4;
         stmt->syntax.func_decl.func_params = malloc(sizeof(Expression *) * 4);
@@ -438,17 +439,28 @@ Statement *create_func_stmt(char *fn_name, Statement *block)
 
 int put_arg_func_stmt(Statement *fn_decl, Expression *arg_expr)
 {
+    size_t next_spot = fn_decl->syntax.func_decl.argc;
     size_t old_capacity = fn_decl->syntax.func_decl.cap;
     size_t new_capacity = old_capacity << 1;
 
-    Expression **raw_args = realloc(fn_decl->syntax.func_decl.func_params, sizeof(Expression *) * new_capacity);
-
-    if (raw_args != NULL)
+    if (next_spot <= old_capacity - 1)
     {
-        for (size_t i = old_capacity; i < new_capacity; i++)
-            raw_args[i] = NULL;
+        fn_decl->syntax.func_decl.func_params[next_spot] = arg_expr;
+        fn_decl->syntax.func_decl.argc++;
+        return 1;
+    }
 
-        fn_decl->syntax.func_decl.func_params = raw_args;
+    Expression **raw_params = realloc(fn_decl->syntax.func_decl.func_params, sizeof(Expression *) * new_capacity);
+
+    if (raw_params != NULL)
+    {
+        for (size_t i = next_spot; i < new_capacity; i++)
+            raw_params[i] = NULL;
+
+        fn_decl->syntax.func_decl.func_params[next_spot] = arg_expr;
+        fn_decl->syntax.func_decl.argc++;
+        fn_decl->syntax.func_decl.func_params = raw_params;
+        fn_decl->syntax.func_decl.cap = new_capacity;
 
         return 1;
     }
@@ -658,9 +670,9 @@ void grow_script(Script *script, Statement *stmt_obj)
         for (size_t i = next_slot; i < new_capacity; i++)
             raw_block[i] = NULL;
 
+        raw_block[next_slot] = stmt_obj;
         script->stmts = raw_block;
-        script->stmts[next_slot] = stmt_obj;
-        
+
         script->count++;
         script->capacity = new_capacity;
     }
