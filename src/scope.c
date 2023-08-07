@@ -61,7 +61,7 @@ int scopestack_init(ScopeStack *stack, int capacity)
     
     for (size_t i = 0; i < checked_capacity; i++) temp_scopes[i] = NULL;
 
-    stack->stack_ptr = 0;
+    stack->stack_ptr = -1;
     stack->scopes = temp_scopes;
     stack->capacity = checked_capacity;
 
