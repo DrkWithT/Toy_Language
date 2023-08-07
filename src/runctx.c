@@ -456,9 +456,9 @@ int compare_primitives(OpType op, VarValue *left_val, VarValue *right_val)
     if (op == OP_EQ) return pre_eq;
     if (op == OP_NEQ) return !pre_eq;
     if (op == OP_GT) return pre_gt;
-    if (op == OP_GTE) return pre_gt && pre_eq;
+    if (op == OP_GTE) return pre_gt || pre_eq;
     if (op == OP_LT) return pre_lt;
-    if (op == OP_LTE) return pre_lt && pre_eq;
+    if (op == OP_LTE) return pre_lt || pre_eq;
 
     return -2; // NOTE: mark invalid operation type!
 }
@@ -819,7 +819,7 @@ VarValue *exec_ifotherwise(RunnerContext *ctx, Statement *stmt)
     }
 
     if (check_result->data.bool_val.flag) optional_result = exec_block(ctx, if_stmt);
-    else optional_result = exec_block(ctx, other_stmt);
+    else optional_result = exec_block(ctx, other_stmt->syntax.otherwise_stmt.stmts);
 
     ctx->status = (ctx->status <= OK_ENDED) ? ctx->status : ERR_GENERAL;
 
