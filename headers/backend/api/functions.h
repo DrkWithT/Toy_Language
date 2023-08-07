@@ -85,6 +85,7 @@ typedef struct st_function
     FuncType type; // function content type
     int arity; // accepted arg count
     char *name; // function name
+    Expression **param_exprs; // reference ptr to AST node's parameters
     union
     {
         NativeFunc fn_ptr; // native C function reference ptr
@@ -94,7 +95,7 @@ typedef struct st_function
 
 FuncObj *func_native_create(char *name, int arity, NativeFunc fn_ptr);
 
-FuncObj *func_ast_create(char *name, int arity, Statement *fn_ast);
+FuncObj *func_ast_create(char *name, int arity, Expression **param_exprs, Statement *fn_ast);
 
 /**
  * @brief Unbinds the AST subtree or function address of the function's content. However, the name string is freed.

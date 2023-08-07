@@ -167,8 +167,12 @@ void varenv_destroy(VarEnv *venv)
     for (size_t i = 0; i < bucket_count; i++)
     {
         target = venv->entries[i];
-        envbucklist_destroy(target);
-        free(target);
+
+        if (target != NULL)
+        {
+            envbucklist_destroy(target);
+            free(target);
+        }
     }
 
     free(venv->entries);
