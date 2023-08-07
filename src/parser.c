@@ -84,7 +84,6 @@ char *parser_stringify_token(Parser *parser, Token *token_ptr)
 
 Expression *parse_primitive(Parser *parser)
 {
-    puts("parse_primitive");
     Token token = parser_peek_curr(parser);
     char *lexeme = parser_stringify_token(parser, &token);
     Expression *expr = NULL;
@@ -107,7 +106,6 @@ Expression *parse_primitive(Parser *parser)
         break;
     case STRBODY:
         expr = create_str(create_str_obj(lexeme));
-        printf("parse_primitive: STRBODY \"%s\"\n", lexeme);
         // NOTE: StringObj now owns the lexeme content. No free needed yet.
         break;
     default:
@@ -123,7 +121,6 @@ Expression *parse_primitive(Parser *parser)
 
 Expression *parse_list(Parser *parser)
 {
-    puts("parse_list");
     int bad_comma = 0;
     int comma_expected = 0;
     Token tok = parser_peek_curr(parser);
@@ -233,14 +230,12 @@ Expression *parse_list(Parser *parser)
 
 Expression *parse_literal(Parser *parser)
 {
-    puts("parse_literal");
     Token token = parser_peek_curr(parser);
     Expression *expr = NULL;
 
     switch (token.type)
     {
     case LPAREN:
-        puts("nested expr");
         parser_advance(parser);
         expr = parse_expr(parser);
 
@@ -254,7 +249,6 @@ Expression *parse_literal(Parser *parser)
         }
         else
         {
-            puts("pass RPAREN");
             parser_advance(parser);
         }
 
@@ -281,7 +275,6 @@ Expression *parse_literal(Parser *parser)
 
 Expression *parse_call(Parser *parser)
 {
-    puts("parse_call");
     // NOTE: parse_call technically should be named parse_usage for handling identifier expressions.
     Token prev;
     Token tok = parser_peek_curr(parser);
@@ -311,7 +304,6 @@ Expression *parse_call(Parser *parser)
 
     // prepare call expression node with identifier string
     lexeme = parser_stringify_token(parser, &prev);
-    printf("making call expr for \"%s\"\n", lexeme);
     expr = create_call(lexeme);
 
     // process argument listing until ')'
@@ -355,7 +347,6 @@ Expression *parse_call(Parser *parser)
 
 Expression *parse_unary(Parser *parser)
 {
-    puts("parse_unary");
     Token tok = parser_peek_curr(parser);
     char operator_symbol = parser->src_copy_ptr[tok.begin];
     Expression *expr = NULL;
@@ -381,7 +372,6 @@ Expression *parse_unary(Parser *parser)
 
 Expression *parse_factor(Parser *parser)
 {
-    puts("parse_factor");
     // parse left side
     OpType operation;
     Token tok;
@@ -400,11 +390,8 @@ Expression *parse_factor(Parser *parser)
 
         char operator_symbol = parser->src_copy_ptr[tok.begin];
 
-        printf("parse_factor: symbol1 = '%c'\n", operator_symbol);
-
         if (tok.span != 1 || (tok.type == OPERATOR && operator_symbol != '*' && operator_symbol != '/'))
         {
-            puts("pre-leave parse_factor");
             return expr;
         }
         else if (tok.type == OPERATOR)
@@ -420,7 +407,6 @@ Expression *parse_factor(Parser *parser)
         }
         else
         {
-            puts("make factor expr");
             right = parse_unary(parser);
             temp = create_binary(operation, expr, right);
             expr = temp;
@@ -432,7 +418,6 @@ Expression *parse_factor(Parser *parser)
 
 Expression *parse_term(Parser *parser)
 {
-    puts("parse_term");
     OpType operation;
     Token tok;
     Expression *left = parse_factor(parser);
@@ -450,11 +435,8 @@ Expression *parse_term(Parser *parser)
 
         char operator_symbol = parser->src_copy_ptr[tok.begin];
 
-        printf("parse_term: symbol1 = '%c'\n", operator_symbol);
-
         if (tok.span != 1 || (tok.type == OPERATOR && operator_symbol != '+' && operator_symbol != '-'))
         {
-            puts("pre-leave parse_term");
             return expr;
         }
         else if (tok.type == OPERATOR)
@@ -469,7 +451,6 @@ Expression *parse_term(Parser *parser)
         }
         else
         {
-            puts("make term expr");
             right = parse_factor(parser);
             temp = create_binary(operation, expr, right);
             expr = temp;
@@ -481,7 +462,6 @@ Expression *parse_term(Parser *parser)
 
 Expression *parse_comparison(Parser *parser)
 {
-    puts("parse_comparison");
     OpType operation;
     Token tok;
     Expression *left = parse_term(parser);
@@ -498,8 +478,6 @@ Expression *parse_comparison(Parser *parser)
         if (tok.type != OPERATOR && !valid_oper) return expr;
 
         char *lexeme = parser_stringify_token(parser, &tok);
-
-        printf("parse_comparison: lexeme \"%s\"\n", lexeme);
 
         if (tok.type == OPERATOR && strncmp(lexeme, ">=", 2) == 0)
         {
@@ -527,7 +505,6 @@ Expression *parse_comparison(Parser *parser)
         }
         else if (valid_oper)
         {
-            puts("make comparison expr");
             right = parse_term(parser);
             temp = create_binary(operation, expr, right);
             expr = temp;
@@ -535,7 +512,6 @@ Expression *parse_comparison(Parser *parser)
         }
         else if (tok.type == OPERATOR)
         {
-            puts("pre-leave parse_comparison");
             return expr;
         }
         else if (tok.type == RPAREN)
@@ -563,7 +539,6 @@ Expression *parse_comparison(Parser *parser)
 
 Expression *parse_equality(Parser *parser)
 {
-    puts("parse_equality");
     OpType operation;
     Token tok;
     Expression *left = parse_comparison(parser);
@@ -595,7 +570,6 @@ Expression *parse_equality(Parser *parser)
         }
         else if (valid_oper)
         {
-            puts("making comparison expr");
             right = parse_comparison(parser);
             temp = create_binary(operation, expr, right);
             expr = temp;
@@ -603,7 +577,6 @@ Expression *parse_equality(Parser *parser)
         }
         else if (tok.type == OPERATOR)
         {
-            puts("pre-leave parse_equality");
             return expr;
         }
         else if (tok.type == RPAREN)
@@ -700,7 +673,6 @@ Expression *parse_expr(Parser *parser)
 
 Statement *parse_var_decl(Parser *parser)
 {
-    puts("parse_var_decl");
     Token tok = parser_peek_curr(parser);
     char *lexeme = NULL;
     Statement *var_decl = NULL;
@@ -770,7 +742,6 @@ Statement *parse_var_decl(Parser *parser)
 Statement *parse_var_assign(Parser *parser)
 {
     // NOTE: assignments are considered statements since they cause side effects.
-    puts("parse_assign_stmt");
     Token tok = parser_peek_curr(parser);
     char *lexeme = parser_stringify_token(parser, &tok);
     Statement *assign_stmt = NULL;
@@ -828,7 +799,6 @@ Statement *parse_var_assign(Parser *parser)
 
 Statement *parse_otherwise_stmt(Parser *parser)
 {
-    puts("parse_otherwise_stmt");
     Token tok = parser_peek_curr(parser);
     char *lexeme = NULL;
     Statement *block_stmt = NULL;
@@ -864,7 +834,6 @@ Statement *parse_otherwise_stmt(Parser *parser)
 
 Statement *parse_if_stmt(Parser *parser)
 {
-    puts("parse_if_stmt");
     Token tok = parser_peek_curr(parser);
     char *lexeme = NULL;
     Statement *if_stmt = NULL;
@@ -923,7 +892,6 @@ Statement *parse_if_stmt(Parser *parser)
 
 Statement *parse_while_stmt(Parser *parser)
 {
-    puts("parse_while_stmt");
     Token tok = parser_peek_curr(parser);
     char *lexeme = NULL;
     Statement *while_stmt = NULL;
@@ -971,7 +939,6 @@ Statement *parse_while_stmt(Parser *parser)
 
 Statement *parse_return_stmt(Parser *parser)
 {
-    puts("parse_return_stmt");
     Token tok = parser_peek_curr(parser);
     char *lexeme = parser_stringify_token(parser, &tok);
     Expression *result_expr = NULL;
@@ -1005,7 +972,6 @@ Statement *parse_return_stmt(Parser *parser)
 
 Statement *parse_block_stmt(Parser *parser)
 {
-    puts("parse_block_stmt");
     Token checked_tok;
     char *lexeme = NULL;
     Statement *temp_stmt = NULL;
@@ -1015,8 +981,6 @@ Statement *parse_block_stmt(Parser *parser)
     {
         checked_tok = parser_peek_curr(parser);
         lexeme = parser_stringify_token(parser, &checked_tok);
-
-        printf("parsing stmt with begin: \"%s\"\n", lexeme);
 
         if (strncmp(lexeme, "while", 5) == 0)
         {
@@ -1072,7 +1036,6 @@ Statement *parse_block_stmt(Parser *parser)
 
 Statement *parse_func_stmt(Parser *parser)
 {
-    puts("parse_func_stmt");
     int bad_syntax = 0;
     int comma_expected = 0;
     Token tok = parser_peek_curr(parser);
@@ -1113,7 +1076,6 @@ Statement *parse_func_stmt(Parser *parser)
 
         if (tok.type == RPAREN)
         {
-            puts("end args");
             parser_advance(parser);
             break;
         }
@@ -1131,6 +1093,7 @@ Statement *parse_func_stmt(Parser *parser)
         else
         {
             param_expr = parse_literal(parser);
+            put_arg_func_stmt(fn_stmt, param_expr);
             comma_expected = 1;
         }
 
@@ -1139,8 +1102,6 @@ Statement *parse_func_stmt(Parser *parser)
             bad_syntax = 1;
             break;
         }
-
-        put_arg_func_stmt(fn_stmt, param_expr);
     }
 
     if (bad_syntax)
@@ -1154,7 +1115,6 @@ Statement *parse_func_stmt(Parser *parser)
     }
 
     // parse function body
-    puts("parsing func body");
     Statement *fn_body = parse_block_stmt(parser);
 
     if (!fn_body)
@@ -1174,7 +1134,6 @@ Statement *parse_func_stmt(Parser *parser)
 
 Statement *parse_module_stmt(Parser *parser)
 {
-    puts("parse_module_stmt");
     Token tok = parser_peek_curr(parser);
     char *lexeme = parser_stringify_token(parser, &tok);
     Statement *use_stmt = NULL;
@@ -1202,7 +1161,6 @@ Statement *parse_module_stmt(Parser *parser)
 
 Statement *parse_use_stmt(Parser *parser)
 {
-    puts("parse_use_stmt");
     Token tok = parser_peek_curr(parser);
     char *lexeme = parser_stringify_token(parser, &tok);
     Statement *use_stmt = NULL;
@@ -1230,12 +1188,10 @@ Statement *parse_use_stmt(Parser *parser)
 
 Statement *parse_expr_stmt(Parser *parser)
 {
-    puts("parse_expr_stmt");
     Expression *inner_expr = parse_expr(parser);
 
     if (!inner_expr) return NULL;
 
-    puts("finished expr stmt");
     return create_expr_stmt(inner_expr);
 }
 

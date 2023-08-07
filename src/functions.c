@@ -6,7 +6,6 @@
  */
 
 #include "backend/api/functions.h"
-#include <stdio.h>
 
 /// SECTION: Args Impl.
 
@@ -58,10 +57,12 @@ void funcargs_destroy(FuncArgs *argv)
         switch (target->type)
         {
         case STR_TYPE:
-            
+            destroy_str_obj(target->data.str_type.value);
+            target->data.str_type.value = NULL;
             break;
         case LIST_TYPE:
-            
+            destroy_list_obj(target->data.list_type.value);
+            target->data.list_type.value = NULL;
             break;
         default:
             break;
@@ -211,7 +212,7 @@ FuncObj *func_native_create(char *name, int arity, NativeFunc fn_ptr)
     return fn_obj;
 }
 
-FuncObj *func_ast_create(char *name, int arity, Statement *fn_ast)
+FuncObj *func_ast_create(char *name, int arity, Expression **param_exprs, Statement *fn_ast)
 {
     FuncObj *fn_obj = malloc(sizeof(FuncObj));
 
@@ -220,6 +221,7 @@ FuncObj *func_ast_create(char *name, int arity, Statement *fn_ast)
         fn_obj->type = FUNC_NORMAL;
         fn_obj->arity = arity;
         fn_obj->name = name;
+        fn_obj->param_exprs = param_exprs;
         fn_obj->content.fn_ast = fn_ast;
     }
 
@@ -245,6 +247,8 @@ void func_dispose(FuncObj *fn_obj)
     default:
         break;
     }
+
+    fn_obj->param_exprs = NULL; // NOTE: unbind param reference ptrs. in case they get freed somewhere else...
 }
 
 /// SECTION: Function Storage Impl. TODO!!
@@ -286,8 +290,14 @@ void funcgroup_dispose(FuncGroup *fn_group)
     for (size_t i = 0; i < fn_count; i++)
     {
         FuncObj *fn_ref = fn_group->fn_buckets[i];
-        func_dispose(fn_ref);
-        free(fn_ref);
+
+        // NOTE: a bucket may be an empty null... skip it!
+        if (fn_ref != NULL)
+        {
+            func_dispose(fn_ref);
+            free(fn_ref);
+        }
+
         fn_group->fn_buckets[i] = NULL;
     }
 
@@ -371,6 +381,7 @@ void funcenv_dispose(FuncEnv *fenv)
     for (size_t i = 0; i < fn_group_count; i++)
     {
         funcgroup_dispose(fenv->func_groups[i]);
+        free(fenv->func_groups[i]);
     }
 
     free(fenv->func_groups);

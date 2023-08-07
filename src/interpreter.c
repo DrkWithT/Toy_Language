@@ -59,7 +59,6 @@ void interpreter_log_err(Interpreter *runner, unsigned int top_stmt_num, RunStat
 
 void interpreter_run(Interpreter *runner)
 {
-    puts("interpreter_run");
     RunnerContext *ctx_ref = &(runner->context); // interpreter context
     unsigned int prgm_len = runner->script_ref->count; // top-level statement count
     Statement **prgm_stmts = runner->script_ref->stmts; // statement vector
@@ -68,13 +67,11 @@ void interpreter_run(Interpreter *runner)
 
     for (unsigned int i = 0; (i < prgm_len) && (status <= OK_ENDED); i++)
     {
-        printf("top stmt %u\n", i);
         stmt_ref = *prgm_stmts;
 
         status = exec_stmt(ctx_ref, stmt_ref);
         interpreter_log_err(runner, i, status);
 
         prgm_stmts++;
-        printf("top stmt %u done\n", i);
     }
 }
