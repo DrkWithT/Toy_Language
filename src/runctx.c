@@ -302,7 +302,7 @@ VarValue *eval_literal(RunnerContext *ctx, Expression *expr)
         result = create_real_varval(1, expr->syntax.real_literal.value);
         break;
     case STR_LITERAL:
-        result = create_str_varval(1, expr->syntax.str_literal.str_obj);
+        result = create_str_varval(1, copy_str_obj(expr->syntax.str_literal.str_obj)); // NOTE: to avoid accidental auto-free, treat literals as pass by value copy.
         break;
     case LIST_LITERAL:
         result = create_list_varval(1, expr->syntax.list_literal.list_obj);
@@ -374,7 +374,7 @@ VarValue *eval_call(RunnerContext *ctx, Expression *expr)
         return fn_result;
     }
 
-    // populate params to later bind to callee scope
+    // populate args to later bind to callee scope
     for(unsigned short arg_index = 0; arg_index < argc; arg_index++)
     {
         Expression *arg_expr = expr->syntax.fn_call.args[arg_index];

@@ -74,9 +74,11 @@ typedef struct st_str_obj
 
 StringObj *create_str_obj(char *source);
 
-StringObj *index_str_obj(StringObj *str, size_t index);
-
 void destroy_str_obj(StringObj *str);
+
+StringObj *copy_str_obj(const StringObj *str);
+
+StringObj *index_str_obj(StringObj *str, size_t index);
 
 StringObj *concat_str_obj(StringObj *str, StringObj *other);
 

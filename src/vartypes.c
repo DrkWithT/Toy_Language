@@ -123,6 +123,45 @@ StringObj *create_str_obj(char *source)
     return str_obj;
 }
 
+void destroy_str_obj(StringObj *str)
+{
+    if (str->source != NULL)
+    {
+        free(str->source);
+        str->source = NULL;
+    }
+
+    str->length = 0;
+}
+
+StringObj *copy_str_obj(const StringObj *str)
+{
+    StringObj *new_str = NULL;
+
+    if (!str) return new_str;
+
+    // create copy of other string contents
+    size_t copy_str_len = str->length;
+    char *copy_source = NULL;
+
+    copy_source = malloc(sizeof(char) * (copy_str_len + 1));
+
+    if (!copy_source) return new_str;
+
+    memcpy(copy_source, str->source, copy_str_len);
+    copy_source[copy_str_len] = '\0';
+
+    new_str = malloc(sizeof(StringObj));
+
+    if (new_str != NULL)
+    {
+        new_str->source = copy_source;
+        new_str->length = copy_str_len;
+    }
+
+    return new_str;
+}
+
 StringObj *index_str_obj(StringObj *str, size_t index)
 {
     size_t parent_length = str->length;
@@ -148,17 +187,6 @@ StringObj *index_str_obj(StringObj *str, size_t index)
     }
 
     return str_obj;
-}
-
-void destroy_str_obj(StringObj *str)
-{
-    if (str->source != NULL)
-    {
-        free(str->source);
-        str->source = NULL;
-    }
-
-    str->length = 0;
 }
 
 StringObj *concat_str_obj(StringObj *str, StringObj *other)
@@ -236,6 +264,8 @@ ListObj *create_list_obj()
 
     return list;
 }
+
+/// TODO: ListObj *copy_list_obj(const ListObj *list) {}
 
 void destroy_list_obj(ListObj *list)
 {
