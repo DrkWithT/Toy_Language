@@ -6,10 +6,9 @@ proc countTen()
     let n = 0
 
     while (n <= 10)
-        set n = n + 1
         print(n)
         print(", ")
-        break
+        set n = n + 1
     end
 
     return n
