@@ -11,31 +11,31 @@
 
 /// SECTION: Debug code
 
-static const char *stmt_names[] = {
-    "MODULE_DEF",
-    "MODULE_USE",
-    "EXPR_STMT",
-    "VAR_DECL",
-    "VAR_ASSIGN",
-    "BLOCK_STMT",
-    "FUNC_DECL",
-    "WHILE_STMT",
-    "IF_STMT",
-    "OTHERWISE_STMT",
-    "BREAK_STMT",
-    "RETURN_STMT"
-};
+// static const char *stmt_names[] = {
+//     "MODULE_DEF",
+//     "MODULE_USE",
+//     "EXPR_STMT",
+//     "VAR_DECL",
+//     "VAR_ASSIGN",
+//     "BLOCK_STMT",
+//     "FUNC_DECL",
+//     "WHILE_STMT",
+//     "IF_STMT",
+//     "OTHERWISE_STMT",
+//     "BREAK_STMT",
+//     "RETURN_STMT"
+// };
 
-void print_stmt(const Statement *stmt)
-{
-    if (!stmt)
-    {
-        puts("(NULL)");
-        return;
-    }
+// void print_stmt(const Statement *stmt)
+// {
+//     if (!stmt)
+//     {
+//         puts("(NULL)");
+//         return;
+//     }
 
-    printf("type \"%s\" stmt\n", stmt_names[stmt->type]);
-}
+//     printf("type \"%s\" stmt\n", stmt_names[stmt->type]);
+// }
 
 /// SECTION: Driver code
 
@@ -85,10 +85,10 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    for (size_t i = 0; i < program->count; i++)
-    {
-        print_stmt(program->stmts[i]);
-    }
+    // for (size_t i = 0; i < program->count; i++)
+    // {
+    //     print_stmt(program->stmts[i]);
+    // }
 
     /// Make and bind native modules.
     FuncGroup *io_module = funcgroup_create("io", 4);
