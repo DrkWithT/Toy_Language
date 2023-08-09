@@ -666,10 +666,10 @@ RunStatus exec_var_assign(RunnerContext *ctx, Statement *stmt)
 
     new_value = eval_expr(ctx, rvalue_expr);
 
-    // NOTE: also fail execution on value allocation failure...
+    // NOTE: value allocation failures are fatal... Exit!
     if (!new_value) return ERR_MEMORY;
 
-    if (!ctx_update_var(ctx, lvalue_name, new_value)) return ERR_TYPE; // NOTE: type mismatches are fatal errors... Exit!
+    if (!ctx_update_var(ctx, lvalue_ref, new_value)) return ERR_TYPE; // NOTE: type mismatches are fatal errors... Exit!
 
     return OK_RAN_CMD;
 }
