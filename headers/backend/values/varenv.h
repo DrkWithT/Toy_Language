@@ -13,16 +13,13 @@
 typedef struct st_variable
 {
     char *name;
+    int is_const;
     VarValue *value;
 } Variable;
 
-Variable *variable_create(char *var_name, VarValue *var_value);
+Variable *variable_create(char *var_name, int is_const, VarValue *var_value);
 
 void variable_destroy(Variable *var_obj);
-
-int variable_is_const(const Variable *var_obj);
-
-DataType variable_get_type(const Variable *var_obj);
 
 /// SECTION: Variable Table Bucket List
 

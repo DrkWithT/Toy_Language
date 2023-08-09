@@ -9,13 +9,14 @@
 
 /// SECTION: Variable impl.
 
-Variable *variable_create(char *var_name, VarValue *var_value)
+Variable *variable_create(char *var_name, int is_const, VarValue *var_value)
 {
     Variable *var_obj = malloc(sizeof(Variable));
 
     if (var_obj != NULL)
     {
         var_obj->name = var_name;
+        var_obj->is_const = is_const;
         var_obj->value = var_value;
     }
 
@@ -42,16 +43,6 @@ void variable_destroy(Variable *var_obj)
     default:
         break;
     }
-}
-
-int variable_is_const(const Variable *var_obj)
-{
-    return var_obj->value->is_const;
-}
-
-DataType variable_get_type(const Variable *var_obj)
-{
-    return var_obj->value->type;
 }
 
 /// SECTION: Variable Table Bucket List

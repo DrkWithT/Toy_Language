@@ -52,9 +52,9 @@ VarValue *ctx_call_func(RunnerContext *ctx, unsigned short argc, const char *fn_
 
 Variable *ctx_get_var(const RunnerContext *ctx, const char *var_name);
 
-int ctx_create_var(RunnerContext *ctx, char *var_name, VarValue *var_val);
+int ctx_create_var(RunnerContext *ctx, char *var_name, int is_const, VarValue *var_val);
 
-int ctx_update_var(RunnerContext *ctx, char *var_name, VarValue *var_val);
+int ctx_update_var(RunnerContext *ctx, Variable *var_ref, VarValue *var_val);
 
 /// SECTION: Expr helpers
 

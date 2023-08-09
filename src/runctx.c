@@ -168,7 +168,7 @@ VarValue *ctx_call_func(RunnerContext *ctx, unsigned short argc, const char *fn_
     for (unsigned short i = 0; i < argc; i++)
     {
         Expression *fn_decl_param = callee_ref->param_exprs[i];
-        scope_put_var(call_scope, variable_create(fn_decl_param->syntax.variable.var_name, args->args[i]));
+        scope_put_var(call_scope, variable_create(fn_decl_param->syntax.variable.var_name, 0, args->args[i]));
     }
 
     if (!scopestack_push_scope(&ctx->scopes, call_scope))
@@ -216,59 +216,65 @@ Variable *ctx_get_var(const RunnerContext *ctx, const char *var_name)
     return NULL;
 }
 
-int ctx_create_var(RunnerContext *ctx, char *var_name, VarValue *var_val)
+int ctx_create_var(RunnerContext *ctx, char *var_name, int is_const, VarValue *var_val)
 {
     if (!var_name || !var_val) return 0;
 
     RubelScope *curr_scope = ctx->scopes.scopes[ctx->scopes.stack_ptr];
-    Variable *new_var = variable_create(var_name, var_val);
+    Variable *new_var = variable_create(var_name, is_const, var_val);
 
     if (!new_var) return 0;
 
     return scope_put_var(curr_scope, new_var);
 }
 
-int ctx_update_var(RunnerContext *ctx, char *var_name, VarValue *var_val)
+int ctx_update_var(RunnerContext *ctx, Variable *var_ref, VarValue *var_val)
 {
-    if (!var_name || !var_val) return 0;
+    // NOTE: fail execution on: undefined vars, const rewrites...
+    if (!var_ref || !var_val) return 0;
 
-    Variable *used_var = ctx_get_var(ctx, var_name);
-    DataType lval_type = variable_get_type(used_var);
+    DataType lval_type = var_ref->value->type;
     DataType rval_type = var_val->type;
     StringObj *optional_str = NULL;
     ListObj *optional_list = NULL;
 
-    if (variable_is_const(used_var)) return 0;
+    if (var_ref->is_const) return 0;
 
     if (lval_type != rval_type) return 0;
 
     switch (lval_type)
     {
     case INT_TYPE:
-        used_var->value->data.int_val.value = var_val->data.int_val.value;
+        var_ref->value->data.int_val.value = var_val->data.int_val.value;
+        varval_destroy(var_val);
+        free(var_val);
         break;
     case REAL_TYPE:
-        used_var->value->data.real_val.value = var_val->data.real_val.value;
+        var_ref->value->data.real_val.value = var_val->data.real_val.value;
+        varval_destroy(var_val);
+        free(var_val);
         break;
     case BOOL_TYPE:
-        used_var->value->data.bool_val.flag = var_val->data.bool_val.flag;
+        var_ref->value->data.bool_val.flag = var_val->data.bool_val.flag;
+        varval_destroy(var_val);
+        free(var_val);
         break;
     case STR_TYPE:
         // clear old string
-        optional_str = used_var->value->data.str_type.value;
+        optional_str = var_ref->value->data.str_type.value;
         destroy_str_obj(optional_str);
         free(optional_str);
 
         // set new one
-        used_var->value->data.str_type.value = var_val->data.str_type.value;
+        var_ref->value->data.str_type.value = var_val->data.str_type.value;
         break;
     case LIST_TYPE:
         // clear old list
-        optional_list = used_var->value->data.list_type.value;
+        optional_list = var_ref->value->data.list_type.value;
         destroy_list_obj(optional_list);
         free(optional_list);
 
-        used_var->value->data.list_type.value = var_val->data.list_type.value;
+        var_ref->value->data.list_type.value = var_val->data.list_type.value;
         break;
     default:
         return 0;
@@ -632,6 +638,7 @@ RunStatus exec_var_decl(RunnerContext *ctx, Statement *stmt)
 {
     RubelScope *curr_scope = ctx->scopes.scopes[ctx->scopes.stack_ptr];
     char *var_name = stmt->syntax.var_decl.var_name;
+    int is_const = stmt->syntax.var_decl.is_const;
     Expression *rvalue_expr = stmt->syntax.var_decl.rvalue;
     VarValue *var_decl_val = NULL;
     Variable *var_decl_result = NULL;
@@ -643,7 +650,7 @@ RunStatus exec_var_decl(RunnerContext *ctx, Statement *stmt)
 
     if (!var_decl_val) return ERR_MEMORY;
 
-    var_decl_result = variable_create(var_name, var_decl_val);
+    var_decl_result = variable_create(var_name, is_const, var_decl_val);
 
     if (!scope_put_var(curr_scope, var_decl_result)) return ERR_MEMORY;
 
@@ -657,19 +664,12 @@ RunStatus exec_var_assign(RunnerContext *ctx, Statement *stmt)
     Variable *lvalue_ref = ctx_get_var(ctx, lvalue_name);
     VarValue *new_value = NULL;
 
-    // NOTE: fail execution on: undefined vars, const rewrites...
-    if (!lvalue_ref) return ERR_NULL_VAL;
-
-    if (lvalue_ref->value->is_const) return ERR_GENERAL;
-
     new_value = eval_expr(ctx, rvalue_expr);
 
     // NOTE: also fail execution on value allocation failure...
     if (!new_value) return ERR_MEMORY;
 
-    if (new_value->type != lvalue_ref->value->type) return ERR_TYPE; // NOTE: this will leave a memory leak of a few bytes, but type mismatches are fatal... Exit!
-
-    ctx_update_var(ctx, lvalue_name, new_value);
+    if (!ctx_update_var(ctx, lvalue_name, new_value)) return ERR_TYPE; // NOTE: type mismatches are fatal errors... Exit!
 
     return OK_RAN_CMD;
 }
@@ -698,9 +698,9 @@ VarValue *exec_while(RunnerContext *ctx, Statement *stmt)
     VarValue *expr_value = eval_expr(ctx, while_condition);
     VarValue *optional_result = NULL;
     RunStatus status = OK_RAN_CMD;
-    int flag = 1;
+    int flag = expr_value->data.bool_val.flag;
 
-    while(flag && ctx->status <= OK_ENDED)
+    while(flag && status < OK_ENDED)
     {
         // NOTE: these guard returns will also leave a tiny memory leak, but this error is fatal anyways... Exit!
         if (!expr_value)
@@ -722,6 +722,13 @@ VarValue *exec_while(RunnerContext *ctx, Statement *stmt)
         {
             // NOTE: since loops can ONLY be in functions, treat the presence of result as a function return!
             status = OK_CTRL_RETURN;
+            break;
+        }
+
+        if (ctx->status > OK_ENDED)
+        {
+            // NOTE: quit loop execution on bubbled error within the loop block!
+            status = ctx->status;
             break;
         }
 
