@@ -43,6 +43,7 @@ This will be a toy language interpreter using the tree walk approach on a genera
  3. Test sample scripts! (Fix segfault on other few test scripts!)
  4. Refactor and test code even more?
    - Add println native function!!
+   - Add full support for modules: same names across modules should not conflict.
    - **FIX TODO:** Fix variable assignment statements, as they do not seem to update in the `count10` example.
       1. Refactor ctx_update_var to use the direct Variable ptr.
       2. Debug `exec_assign_var` and `ctx_update_var`.
