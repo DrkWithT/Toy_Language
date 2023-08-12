@@ -12,6 +12,8 @@
 
 VarValue *rubel_print(FuncArgs *args);
 
+VarValue *rubel_println(FuncArgs *args);
+
 VarValue *rubel_input(FuncArgs *args);
 
 /// SECTION: module "lists" natives

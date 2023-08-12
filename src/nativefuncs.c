@@ -41,6 +41,38 @@ VarValue *rubel_print(FuncArgs *args)
     return NULL; // return the argument if it existed anyways... tells interpreter that print was OK
 }
 
+VarValue *rubel_println(FuncArgs *args)
+{
+    VarValue *arg1 = funcargs_get_at(args, 0);
+    DataType arg_type = varval_get_type(arg1);
+
+    if (!arg1) return NULL;
+
+    switch (arg_type)
+    {
+    case INT_TYPE:
+        printf("%i\n", arg1->data.int_val.value);
+        break;
+    case REAL_TYPE:
+        printf("%f\n", arg1->data.real_val.value);
+        break;
+    case STR_TYPE:
+        printf("%s\n", arg1->data.str_type.value->source);
+        break;
+    case BOOL_TYPE:
+        if (arg1->data.bool_val.flag) printf("boolean($T)\n");
+        else printf("boolean($F)\n");
+        break;
+    case LIST_TYPE:
+        printf("list[%zu]\n", arg1->data.list_type.value->count);
+        break;
+    default:
+        break;
+    }
+
+    return NULL;
+}
+
 VarValue *rubel_input(FuncArgs *args)
 {
     char *input_buffer = malloc(sizeof(char) * (RUBEL_INPUT_READ_MAX + 1));
