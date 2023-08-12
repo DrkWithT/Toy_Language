@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 
     if (strcmp(argv[1], "--version") == 0)
     {
-        puts("Rubel v0.0.1\nBy DrkWithT");
+        puts("Rubel v0.1.0\nBy DrkWithT");
         return 0;
     }
 
@@ -93,6 +93,7 @@ int main(int argc, char *argv[])
     /// Make and bind native modules.
     FuncGroup *io_module = funcgroup_create("io", 4);
     funcgroup_put(io_module, func_native_create("print", 1, rubel_print));
+    funcgroup_put(io_module, func_native_create("println", 1, rubel_println));
     funcgroup_put(io_module, func_native_create("input", 0, rubel_input));
 
     FuncGroup *lists_module = funcgroup_create("lists", 4);
