@@ -79,6 +79,25 @@ VarValue *create_list_varval(int is_const, struct st_list_obj *value)
     return strval;
 }
 
+void varval_destroy(VarValue *value)
+{
+    switch (value->type)
+    {
+    case STR_TYPE:
+        destroy_str_obj(value->data.str_type.value);
+        free(value->data.str_type.value);
+        value->data.str_type.value = NULL;
+        break;
+    case LIST_TYPE:
+        destroy_list_obj(value->data.list_type.value);
+        free(value->data.list_type.value);
+        value->data.list_type.value = NULL;
+        break;
+    default:
+        break;
+    }
+}
+
 DataType varval_get_type(const VarValue *variable)
 {
     return variable->type;
@@ -102,6 +121,45 @@ StringObj *create_str_obj(char *source)
     }
 
     return str_obj;
+}
+
+void destroy_str_obj(StringObj *str)
+{
+    if (str->source != NULL)
+    {
+        free(str->source);
+        str->source = NULL;
+    }
+
+    str->length = 0;
+}
+
+StringObj *copy_str_obj(const StringObj *str)
+{
+    StringObj *new_str = NULL;
+
+    if (!str) return new_str;
+
+    // create copy of other string contents
+    size_t copy_str_len = str->length;
+    char *copy_source = NULL;
+
+    copy_source = malloc(sizeof(char) * (copy_str_len + 1));
+
+    if (!copy_source) return new_str;
+
+    memcpy(copy_source, str->source, copy_str_len);
+    copy_source[copy_str_len] = '\0';
+
+    new_str = malloc(sizeof(StringObj));
+
+    if (new_str != NULL)
+    {
+        new_str->source = copy_source;
+        new_str->length = copy_str_len;
+    }
+
+    return new_str;
 }
 
 StringObj *index_str_obj(StringObj *str, size_t index)
@@ -129,17 +187,6 @@ StringObj *index_str_obj(StringObj *str, size_t index)
     }
 
     return str_obj;
-}
-
-void destroy_str_obj(StringObj *str)
-{
-    if (str->source != NULL)
-    {
-        free(str->source);
-        str->source = NULL;
-    }
-
-    str->length = 0;
 }
 
 StringObj *concat_str_obj(StringObj *str, StringObj *other)
@@ -218,6 +265,8 @@ ListObj *create_list_obj()
     return list;
 }
 
+/// TODO: ListObj *copy_list_obj(const ListObj *list) {}
+
 void destroy_list_obj(ListObj *list)
 {
     if (list->count < 1)
@@ -258,4 +307,44 @@ int append_list_obj(ListObj *list, VarValue *data)
     list->count++;
 
     return 1;
+}
+
+// VarValue *pop_list_obj(ListObj *list)
+// {
+//     if (list->count == 0 || !list->head) return NULL;
+
+//     ListNodeObj *prev_ptr = list->head;
+//     ListNodeObj *target_ptr = list->head;
+
+//     while (target_ptr->next != NULL)
+//     {
+//         prev_ptr = target_ptr;
+//         target_ptr = target_ptr->next;
+//     }
+
+//     // remove last node
+//     prev_ptr->next = NULL;
+//     list->last = prev_ptr;
+//     list->count--;
+
+//     return target_ptr;
+// }
+
+VarValue *get_at_list_obj(const ListObj *list, size_t index)
+{
+    size_t countdown = index;
+
+    if (countdown >= list->count) return NULL;
+
+    ListNodeObj *temp_ptr = list->head;
+
+    while (temp_ptr->next != NULL)
+    {
+        if (countdown == 0) break;
+
+        temp_ptr = temp_ptr->next;
+        countdown--;
+    }
+
+    return temp_ptr->value;
 }

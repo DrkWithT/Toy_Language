@@ -7,6 +7,7 @@ This will be a toy language interpreter using the tree walk approach on a genera
 ### Features of Rubel
  1. Paradigm(s):
     - Imperative
+    - Dynamic Scoping
  2. Type System:
     - NO "undefined" values for null safety.
     - Variable types are inferred.
@@ -20,9 +21,10 @@ This will be a toy language interpreter using the tree walk approach on a genera
  4. Syntax disallows control flow statements outside of function declarations to discourage messy code.
 
 ### Keywords of Rubel
+ - `module`: Declares a module (a separate procedure group) by name.
  - `use`: Includes a module into a script. Specifically, the names of other procedures and constants become visible.
  - `let`: Declares a mutable variable.
- - `const`: Declares a _deeply_ immutable variable. Lists will not be mutable either as `const`!
+ - `const`: Declares a _deeply_ immutable variable. Lists will be immutable _for now_!
  - `set`: Tells Rubel that we're reassigning a variable. Fails on `const` valued variables during runtime!
  - `proc`: Declares a procedure.
  - `if`: Executes a block of statements if its conditional is true.
@@ -36,6 +38,9 @@ This will be a toy language interpreter using the tree walk approach on a genera
 
 ### TODO:
  1. ~~Make parser and `vartypes.h` structures.~~
- 2. Make interpreter: create scopes as HashTable using bucket lists and evaluator as visitor pattern on AST.
+   - Later add logical expressions.
+ 2. ~~Make interpreter: create scopes as HashTable using bucket list, native function API, and evaluator.~~
  3. Test sample scripts!
- 4. Add parentheses grouping later... Add parse logic in `parse_literal` for `(EXPR)` case.
+ 4. Refactor and test code even more?
+   - Add full support for modules: same names across modules should not conflict.
+   - Implement `copy_list_obj` to avoid accidental null values when list literals are passed into function arguments... `funcargs_destroy` calls will free any value through their _pointer_ rather than by value.

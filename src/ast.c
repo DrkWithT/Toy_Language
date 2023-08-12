@@ -3,7 +3,6 @@
  * @author Derek Tan
  * @brief Implements AST structures and functions.
  * @date 2023-07-23
- * @todo Modify AST node destroy_xx functions when interpreter is done: the str_obj and list_obj properties must be unbound as they are managed by Scope objects.
  */
 
 #include "frontend/ast.h"
@@ -110,8 +109,16 @@ Expression *create_call(char *fn_name)
 
 int add_arg_call(Expression *call_expr, Expression *arg_expr)
 {
+    size_t next_spot = call_expr->syntax.fn_call.argc;
     size_t old_capacity = call_expr->syntax.fn_call.cap;
     size_t new_capacity = old_capacity << 1;
+
+    if (next_spot <= old_capacity - 1)
+    {
+        call_expr->syntax.fn_call.args[next_spot] = arg_expr;
+        call_expr->syntax.fn_call.argc++;
+        return 1;
+    }
 
     Expression **raw_block = realloc(call_expr->syntax.fn_call.args, sizeof(Expression *) * new_capacity);
 
@@ -120,7 +127,11 @@ int add_arg_call(Expression *call_expr, Expression *arg_expr)
         for (size_t i = old_capacity; i < new_capacity; i++)
             raw_block[i] = NULL;
         
+        call_expr->syntax.fn_call.args[next_spot] = arg_expr;
         call_expr->syntax.fn_call.args = raw_block;
+        call_expr->syntax.fn_call.argc++;
+        call_expr->syntax.fn_call.cap = new_capacity;
+
         return 1;
     }
 
@@ -207,22 +218,14 @@ void destroy_expr(Expression *expr)
 {
     if (expr->type == STR_LITERAL)
     {
-        // TODO: remove destroy-free when interpreter is done.
-        destroy_str_obj(expr->syntax.str_literal.str_obj);
-        free(expr->syntax.str_literal.str_obj);
         expr->syntax.str_literal.str_obj = NULL;
     }
     else if (expr->type == LIST_LITERAL)
     {
-        // TODO: remove this destroy-free too on interpreter finish.
-        destroy_list_obj(expr->syntax.list_literal.list_obj);
-        free(expr->syntax.list_literal.list_obj);
         expr->syntax.list_literal.list_obj = NULL;
     }
     else if (expr->type == VAR_USAGE)
     {
-        // NOTE: free var name since only its hash is needed for running.
-        free(expr->syntax.variable.var_name);
         expr->syntax.variable.var_name = NULL;
     }
     else if (expr->type == FUNC_CALL)
@@ -286,13 +289,13 @@ int grow_block_stmt(Statement *block_stmt, Statement *new_stmt)
     if (!new_stmt)
         return 0;
 
-    size_t curr_count = block_stmt->syntax.block.count;
+    size_t next_spot = block_stmt->syntax.block.count;
     size_t old_capacity = block_stmt->syntax.block.capacity;
     size_t new_capacity = old_capacity << 1;
 
-    if (curr_count < old_capacity)
+    if (next_spot <= old_capacity - 1)
     {
-        block_stmt->syntax.block.stmts[curr_count - 1] = new_stmt;
+        block_stmt->syntax.block.stmts[next_spot] = new_stmt;
         block_stmt->syntax.block.count++;
         return 1;
     }
@@ -301,13 +304,14 @@ int grow_block_stmt(Statement *block_stmt, Statement *new_stmt)
 
     if (raw_block != NULL)
     {
-        for (size_t i = old_capacity; i < new_capacity; i++)
+        for (size_t i = next_spot; i < new_capacity; i++)
             raw_block[i] = NULL;
         
+        raw_block[next_spot] = new_stmt;
         block_stmt->syntax.block.stmts = raw_block;
-        block_stmt->syntax.block.stmts[old_capacity] = new_stmt;
-        
         block_stmt->syntax.block.count++;
+        block_stmt->syntax.block.capacity = new_capacity;
+
         return 1;
     }
 
@@ -420,12 +424,13 @@ Statement *create_func_stmt(char *fn_name, Statement *block)
     if (stmt != NULL)
     {
         stmt->type = FUNC_DECL;
+        stmt->syntax.func_decl.func_name = fn_name;
         stmt->syntax.func_decl.argc = 0;
         stmt->syntax.func_decl.cap = 4;
-        stmt->syntax.func_decl.func_args = malloc(sizeof(Expression *) * 4);
+        stmt->syntax.func_decl.func_params = malloc(sizeof(Expression *) * 4);
         stmt->syntax.func_decl.stmts = block;
 
-        if (!stmt->syntax.func_decl.func_args)
+        if (!stmt->syntax.func_decl.func_params)
             stmt->syntax.func_decl.cap = 0;  // NOTE: mark bad memory as empty!
     }
 
@@ -434,17 +439,28 @@ Statement *create_func_stmt(char *fn_name, Statement *block)
 
 int put_arg_func_stmt(Statement *fn_decl, Expression *arg_expr)
 {
+    size_t next_spot = fn_decl->syntax.func_decl.argc;
     size_t old_capacity = fn_decl->syntax.func_decl.cap;
     size_t new_capacity = old_capacity << 1;
 
-    Expression **raw_args = realloc(fn_decl->syntax.func_decl.func_args, sizeof(Expression *) * new_capacity);
-
-    if (raw_args != NULL)
+    if (next_spot <= old_capacity - 1)
     {
-        for (size_t i = old_capacity; i < new_capacity; i++)
-            raw_args[i] = NULL;
+        fn_decl->syntax.func_decl.func_params[next_spot] = arg_expr;
+        fn_decl->syntax.func_decl.argc++;
+        return 1;
+    }
 
-        fn_decl->syntax.func_decl.func_args = raw_args;
+    Expression **raw_params = realloc(fn_decl->syntax.func_decl.func_params, sizeof(Expression *) * new_capacity);
+
+    if (raw_params != NULL)
+    {
+        for (size_t i = next_spot; i < new_capacity; i++)
+            raw_params[i] = NULL;
+
+        fn_decl->syntax.func_decl.func_params[next_spot] = arg_expr;
+        fn_decl->syntax.func_decl.argc++;
+        fn_decl->syntax.func_decl.func_params = raw_params;
+        fn_decl->syntax.func_decl.cap = new_capacity;
 
         return 1;
     }
@@ -459,11 +475,11 @@ int pack_args_func_stmt(Statement *fn_decl)
 
     if (curr_capacity <= curr_count) return 1;
 
-    Expression **raw_args = realloc(fn_decl->syntax.func_decl.func_args, sizeof(Expression *) * curr_count);
+    Expression **raw_args = realloc(fn_decl->syntax.func_decl.func_params, sizeof(Expression *) * curr_count);
 
     if (raw_args != NULL)
     {
-        fn_decl->syntax.func_decl.func_args = raw_args;
+        fn_decl->syntax.func_decl.func_params = raw_args;
         return 1;
     }
 
@@ -473,7 +489,7 @@ int pack_args_func_stmt(Statement *fn_decl)
 void clear_func_stmt(Statement *fn_decl)
 {
     // 1. Free memory for argument objects.
-    Expression **args_cursor = fn_decl->syntax.func_decl.func_args;
+    Expression **args_cursor = fn_decl->syntax.func_decl.func_params;
     Expression *target = NULL;
     size_t arg_count = fn_decl->syntax.func_decl.argc;
 
@@ -576,7 +592,7 @@ Statement *create_expr_stmt(Expression *expr)
     return stmt;
 }
 
-/// TODO: implement destroy_stmt!
+/// TODO: add extra checks for null ptrs.
 void destroy_stmt(Statement *stmt)
 {
     if (stmt->type == BLOCK_STMT)
@@ -586,19 +602,16 @@ void destroy_stmt(Statement *stmt)
     else if (stmt->type == FUNC_DECL)
     {
         clear_block_stmt(stmt->syntax.func_decl.stmts);
-        free(stmt->syntax.func_decl.func_name);
         stmt->syntax.func_decl.func_name = NULL;
     }
     else if (stmt->type == VAR_DECL)
     {
         destroy_expr(stmt->syntax.var_decl.rvalue);
-        free(stmt->syntax.var_decl.var_name);
         stmt->syntax.var_decl.var_name = NULL;
     }
     else if (stmt->type == VAR_ASSIGN)
     {
         destroy_expr(stmt->syntax.var_assign.rvalue);
-        free(stmt->syntax.var_assign.var_name);
         stmt->syntax.var_assign.var_name = NULL;
     }
     else if (stmt->type == WHILE_STMT)
@@ -657,9 +670,9 @@ void grow_script(Script *script, Statement *stmt_obj)
         for (size_t i = next_slot; i < new_capacity; i++)
             raw_block[i] = NULL;
 
+        raw_block[next_slot] = stmt_obj;
         script->stmts = raw_block;
-        script->stmts[next_slot] = stmt_obj;
-        
+
         script->count++;
         script->capacity = new_capacity;
     }

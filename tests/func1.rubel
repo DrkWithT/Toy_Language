@@ -1,13 +1,14 @@
-# linear search sample
+# linear search
 
 use io
+use lists
 
 const numlist = [7, 1, 2, 5, 4, 6, 3]
 const target = 4
 
 proc findNum(numbers, num)
     let i = 0
-    let count = lengthof(numbers)
+    let count = length(numbers)
 
     while (i < count)
         if (at(numbers, i) == num)

@@ -3,11 +3,12 @@
 use io
 
 proc countTen()
-    let n = 10
+    let n = 0
 
-    while (n > 0)
-        println(n)
-        set n = n - 1
+    while (n <= 10)
+        print(n)
+        print(", ")
+        set n = n + 1
     end
 
     return n

@@ -60,6 +60,8 @@ VarValue *create_str_varval(int is_const, struct st_str_obj *value);
 
 VarValue *create_list_varval(int is_const, struct st_list_obj *value);
 
+void varval_destroy(VarValue *value);
+
 DataType varval_get_type(const VarValue *variable);
 
 int varval_is_const(const VarValue *variable);
@@ -72,9 +74,11 @@ typedef struct st_str_obj
 
 StringObj *create_str_obj(char *source);
 
-StringObj *index_str_obj(StringObj *str, size_t index);
-
 void destroy_str_obj(StringObj *str);
+
+StringObj *copy_str_obj(const StringObj *str);
+
+StringObj *index_str_obj(StringObj *str, size_t index);
 
 StringObj *concat_str_obj(StringObj *str, StringObj *other);
 
@@ -101,6 +105,8 @@ void destroy_list_obj(ListObj *list);
 
 int append_list_obj(ListObj *list, VarValue *data);
 
-int pop_list_obj(ListObj *list);
+// VarValue *pop_list_obj(ListObj *list);
+
+VarValue *get_at_list_obj(const ListObj *list, size_t index);
 
 #endif
